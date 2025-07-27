@@ -1,0 +1,24 @@
+/* In RoamingRoutes.Client/wwwroot/css/site.css */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #F8F9FA;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Lora', serif;
+}
+.hero-bg {
+    /* Vervang deze placeholder door je eigen gegenereerde afbeelding */
+    background-image: url('https://placehold.co/1600x800/2c3e50/ffffff?text=Roaming+Routes&font=lora');
+    background-size: cover;
+    background-position: center;
+}
+.timeline-connector {
+    width: 2px;
+    height: 100%;
+    background-color: #e5e7eb; /* light gray */
+    margin-top: 0.5rem;
+}
+
+html {
+    scroll-behavior: smooth;
+}

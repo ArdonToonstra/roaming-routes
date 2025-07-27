@@ -1,0 +1,35 @@
+@page "/city-guides"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@inject HttpClient Http
+@using RoamingRoutes.Shared.Models
+
+<PageTitle>City Guides - Roaming Routes</PageTitle>
+
+<div class="container mx-auto px-6 py-16">
+    <h1 class="text-4xl font-bold text-center mb-12">City Guides</h1>
+    @if (guides == null) {
+        <p class="text-center"><em>Loading guides...</em></p>
+    } else {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            @foreach (var guide in guides)
+            {
+                <a href="/city-guide/@guide.UrlKey" class="block bg-white rounded-lg shadow-lg overflow-hidden transition transform hover:-translate-y-1 hover:shadow-xl">
+                    <img src="@(guide.HeaderImageUrl ?? $"https://placehold.co/600x400/16a085/ffffff?text={System.Net.WebUtility.UrlEncode(guide.CityName)}&font=poppins")" alt="Header image for @guide.CityName" class="w-full h-56 object-cover">
+                    <div class="p-6">
+                        <span class="text-sm text-gray-500">@guide.Country</span>
+                        <h3 class="text-2xl font-semibold my-2">@guide.CityName</h3>
+                        <p class="text-gray-600 mb-4 line-clamp-3">@guide.Summary</p>
+                        <span class="text-orange-600 font-semibold">Explore Guide &rarr;</span>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private CityGuide[]? guides;
+    protected override async Task OnInitializedAsync() {
+        guides = await Http.GetFromJsonAsync<CityGuide[]>("api/cityguides");
+    }
+}

@@ -1,0 +1,5 @@
+TODO's:
+- Lisa's nieuwe velden toevoegen
+- Foto's en reis goedzetten
+- Map in de vorm van een kaartje, niet interactief
+- build world map on homepage with clickable locations

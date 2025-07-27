@@ -1,0 +1,30 @@
+﻿@inherits LayoutComponentBase
+
+<!-- Header & Navigation -->
+<header class="bg-white shadow-md sticky top-0 z-50">
+    <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <a href="/" class="text-2xl font-bold text-gray-900 font-serif">Roaming Routes</a>
+        <div class="hidden md:flex space-x-8">
+            <NavLink href="/" class="text-gray-600 hover:text-orange-600 transition">Home</NavLink>
+            <NavLink href="/trips" class="text-gray-600 hover:text-orange-600 transition">Destinations</NavLink>
+            <NavLink href="/random-trip" class="text-gray-600 hover:text-orange-600 transition" title="Let us pick a random adventure for you!">Random Route</NavLink>
+            <NavLink href="/city-guides" class="text-gray-600 hover:text-orange-600 transition">City Guides</NavLink>
+            @* Voeg hier later meer links toe *@
+        </div>
+    </nav>
+</header>
+
+<main>
+    @Body
+</main>
+
+<!-- Footer -->
+<footer class="bg-gray-900 text-white mt-16">
+    <div class="container mx-auto px-6 py-12 text-center">
+        <h3 class="text-xl font-bold mb-4 font-serif">Roaming Routes</h3>
+        <p class="text-gray-400">Adventures, one step at a time. Sharing our routes to inspire yours.</p>
+        <div class="mt-8 border-t border-gray-800 pt-8 text-gray-400">
+            <p>&copy; @DateTime.Now.Year Roaming Routes. All Rights Reserved.</p>
+        </div>
+    </div>
+</footer>

@@ -1,0 +1,39 @@
+@inject IJSRuntime JSRuntime
+
+<div id="@mapId" style="height: 500px; width: 100%; border-radius: 8px; background-color: #f0f0f0;"></div>
+
+@code {
+    private string mapId = $"map-{Guid.NewGuid()}";
+    private string? _previousGeoJsonUrl;
+
+    [Parameter]
+    public string? GeoJsonUrl { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(GeoJsonUrl) && GeoJsonUrl != _previousGeoJsonUrl)
+        {
+            _previousGeoJsonUrl = GeoJsonUrl;
+
+            // Wacht een "tick" om de browser de kans te geven de div te renderen.
+            // Dit is een robuuste oplossing voor dit type timingprobleem.
+            await Task.Delay(1);
+
+            await JSRuntime.InvokeVoidAsync("roamingRoutesMap.initializeAndDrawRoute", mapId, GeoJsonUrl);
+        }
+    }
+    public async Task ShowFullRoute()
+    {
+        await JSRuntime.InvokeVoidAsync("roamingRoutesMap.resetView", mapId);
+    }
+
+    public async Task HighlightDay(int day)
+    {
+        await JSRuntime.InvokeVoidAsync("roamingRoutesMap.highlightMarker", mapId, day);
+    }
+
+    public async Task InvalidateMapSize()
+    {
+        await JSRuntime.InvokeVoidAsync("roamingRoutesMap.invalidateSize", mapId);
+    }
+}

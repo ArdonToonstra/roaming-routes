@@ -1,0 +1,161 @@
+@page "/city-guide/{UrlKey}"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@using RoamingRoutes.Shared.Models
+
+@if (guide == null)
+{
+    <div class="text-center p-16"><em>Loading guide...</em></div>
+}
+else
+{
+    <PageTitle>@guide.CityName Guide</PageTitle>
+
+    <!-- Hero Sectie met Header Afbeelding -->
+    <div class="relative h-96 bg-gray-700">
+        <img src="@(guide.HeaderImageUrl ?? $"https://placehold.co/1600x600/334155/f1f5f4?text={System.Net.WebUtility.UrlEncode(guide.CityName)}&font=lora")" alt="Header image for @guide.CityName" class="w-full h-full object-cover" />
+        <div class="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-center items-center text-white text-center p-4">
+            <p class="text-lg">A Roaming Routes Guide to</p>
+            <h1 class="text-5xl md:text-7xl font-bold mt-2">@guide.CityName</h1>
+            <p class="mt-4 max-w-2xl">@guide.Summary</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-6 py-12">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-12">
+
+            <!-- Sticky Sidebar Navigatie -->
+            <aside class="lg:col-span-3 lg:sticky top-24 self-start hidden lg:block">
+                <nav class="space-y-2">
+                    <h3 class="font-semibold text-gray-500 uppercase tracking-wider">Sections</h3>
+                    <button @onclick='() => ScrollToSection("introduction")' class="w-full text-left flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200 rounded-md">
+                        <span class="w-6 h-6 mr-3">@((MarkupString)GetIcon("book-open"))</span>
+                        <span>Introduction</span>
+                    </button>
+                    @foreach (var section in guide.Sections)
+                    {
+                        <button @onclick='() => ScrollToSection(GetSectionId(section.Title))' class="w-full text-left flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200 rounded-md">
+                            <span class="w-6 h-6 mr-3">@((MarkupString)GetIcon(section.Icon))</span>
+                            <span>@(section.Title)</span>
+                        </button>
+                    }
+                </nav>
+            </aside>
+
+            <!-- Hoofdcontent -->
+            <main class="lg:col-span-9">
+                <!-- Introductie Sectie -->
+                <section id="introduction" class="mb-16 scroll-mt-24">
+                    <div class="bg-white p-8 rounded-lg shadow-lg">
+                        <p class="text-lg text-gray-700 leading-relaxed">@guide.Introduction</p>
+                    </div>
+                </section>
+
+                <!-- Dynamische Secties -->
+                @foreach (var section in guide.Sections)
+                {
+                    <section id="@GetSectionId(section.Title)" class="mb-16 scroll-mt-24">
+                        <h2 class="text-3xl font-bold mb-6 flex items-center text-gray-800">
+                            <span class="w-8 h-8 mr-4 text-orange-600">@((MarkupString)GetIcon(section.Icon))</span>
+                            @(section.Title)
+                        </h2>
+
+                        <!-- Highlight Carousel -->
+                        @if (section.Highlights.Any())
+                        {
+                            var carouselId = $"carousel-{GetSectionId(section.Title)}";
+                            <div class="relative">
+                                <!-- Carousel Container -->
+                                <div id="@carouselId" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 -mx-2 px-2" style="scrollbar-width: none; -ms-overflow-style: none;">
+                                    @foreach (var highlight in section.Highlights)
+                                    {
+                                        <div class="flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 snap-start px-2">
+                                            <div class="bg-white h-full rounded-lg shadow-md overflow-hidden transform transition hover:-translate-y-1 hover:shadow-xl">
+                                                <div class="p-6">
+                                                    <h4 class="text-xl font-semibold text-gray-900">@highlight.Name</h4>
+                                                    <p class="text-gray-600 mt-2">@highlight.Description</p>
+                                                    @if (!string.IsNullOrEmpty(highlight.Costs) || !string.IsNullOrEmpty(highlight.References))
+                                                    {
+                                                        <div class="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-500 flex items-center space-x-6">
+                                                            @if (!string.IsNullOrEmpty(highlight.Costs))
+                                                            {
+                                                                <span class="flex items-center">
+                                                                    <span class="w-5 h-5 mr-1.5">@((MarkupString)GetIcon("currency-euro"))</span>
+                                                                    @highlight.Costs
+                                                                </span>
+                                                            }
+                                                            @if (!string.IsNullOrEmpty(highlight.References))
+                                                            {
+                                                                <a href="@highlight.References" target="_blank" rel="noopener noreferrer" class="flex items-center text-orange-600 hover:underline">
+                                                                    <span class="w-5 h-5 mr-1.5">@((MarkupString)GetIcon("link"))</span>
+                                                                    Website
+                                                                </a>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <!-- Carousel Knoppen -->
+                                <button @onclick='() => ScrollCarousel(carouselId, -1)' class="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+                                <button @onclick='() => ScrollCarousel(carouselId, 1)' class="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-md z-10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            </div>
+                        }
+                    </section>
+                }
+            </main>
+        </div>
+    </div>
+}
+@code {
+    [Parameter]
+    public string? UrlKey { get; set; }
+    private CityGuide? guide;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(UrlKey))
+        {
+            guide = await Http.GetFromJsonAsync<CityGuide>($"api/cityguides/{UrlKey}");
+        }
+    }
+
+    private string GetSectionId(string title)
+    {
+        return title.ToLower().Replace(" ", "-").Replace("&", "and");
+    }
+
+    private async Task ScrollToSection(string id)
+    {
+        await JSRuntime.InvokeVoidAsync("roamingRoutesGeneral.scrollToElement", id);
+    }
+
+    private async Task ScrollCarousel(string carouselId, int direction)
+    {
+        await JSRuntime.InvokeVoidAsync("roamingRoutesGeneral.scrollCarousel", carouselId, direction);
+    }
+    // Icon helper om SVGs terug te geven op basis van de icon-naam in de YAML
+    private string GetIcon(string iconName)
+    {
+        return iconName.ToLower() switch
+        {
+            "bed" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125V6.375c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v.001c0 .621.504 1.125 1.125 1.125z' /></svg>",
+            "sun" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' /></svg>",
+            "shopping-bag" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.658-.463 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z' /></svg>",
+            "cloud-rain" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.362-6.867 8.268 8.268 0 013 2.48z' /><path stroke-linecap='round' stroke-linejoin='round' d='M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z' /></svg>",
+            "utensils" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z' /></svg>",
+            "book-open" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25' /></svg>",
+            "currency-euro" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M14.25 7.756a4.5 4.5 0 100 8.488M7.5 10.5h5.25m-5.25 3h5.25M21 12a9 9 0 11-18 0 9 9 0 0118 0z' /></svg>",
+            "link" => @"<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' d='M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244' /></svg>",
+            _ => "" // Default case
+        };
+    }
+}

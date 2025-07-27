@@ -1,0 +1,12 @@
+C:\git\roaming-routes\RoamingRoutes.Shared\bin\Debug\net8.0\RoamingRoutes.Shared.deps.json
+C:\git\roaming-routes\RoamingRoutes.Shared\bin\Debug\net8.0\RoamingRoutes.Shared.dll
+C:\git\roaming-routes\RoamingRoutes.Shared\bin\Debug\net8.0\RoamingRoutes.Shared.pdb
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.AssemblyInfoInputs.cache
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.AssemblyInfo.cs
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.csproj.CoreCompileInputs.cache
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.sourcelink.json
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.dll
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\refint\RoamingRoutes.Shared.dll
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\RoamingRoutes.Shared.pdb
+C:\git\roaming-routes\RoamingRoutes.Shared\obj\Debug\net8.0\ref\RoamingRoutes.Shared.dll

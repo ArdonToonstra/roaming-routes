@@ -1,0 +1,91 @@
+# Nuget packages
+*.nupkg
+## Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Tt]emp/
+[Rr]esharper/
+*.csproj.user
+*.suo
+*.user
+*.config.user
+*.dll
+*.exe
+*.pdb
+*.psess
+*.vsp
+*.vspx
+*.vsps
+*.tsc
+*.eot
+*.woff
+*.woff2
+*.ttf
+*.scss
+*.less
+
+# Visual Studio files
+.vs/
+*.sln.docstates
+*.sln.suo
+*.vssscc
+*.vspscc
+*.local
+*.DS_Store # macOS specifieke bestanden
+
+# Resharper
+_ReSharper.*/
+*.resharper
+*.dotSettings
+
+# Rider
+.idea/
+
+# Package Manager files
+packages/
+*.orig
+
+# Visual Studio Code
+.vscode/
+
+# Npm
+node_modules/
+npm-debug.log*
+
+# Xamarin
+*.ipa
+*.app
+*.apk
+
+# Android
+Generated/
+obj/
+bin/
+
+# iOS
+build/
+
+# Azure
+*.publishsettings
+*.sublime-project
+*.sublime-workspace
+.tfignore
+
+
+# Content Cache
+_contentCache/
+RoamingRoutes/_contentCache/
+
+RoamingRoutes/roamingroutes.db
+RoamingRoutes/roamingroutes.db-shm
+RoamingRoutes/roamingroutes.db-wal
+
+
+# Oude lokale content mappen
+Data/Trips/
+Data/Cities/
+wwwroot/images/trips/
+wwwroot/images/cities/
+RoamingRoutes/wwwroot/images/cityguides/

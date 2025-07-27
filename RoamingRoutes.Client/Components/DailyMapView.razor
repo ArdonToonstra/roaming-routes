@@ -1,0 +1,23 @@
+@inject IJSRuntime JSRuntime
+@using RoamingRoutes.Shared.Models
+
+<div id="@mapId" class="w-full h-64 rounded-lg shadow-md"></div>
+
+@code {
+    private string mapId = $"map-{Guid.NewGuid()}";
+
+    [Parameter]
+    public Location? Location { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Location != null)
+        {
+            await JSRuntime.InvokeVoidAsync("roamingRoutesMap.initDailyMap", 
+                mapId, 
+                Location.Latitude, 
+                Location.Longitude, 
+                Location.Day);
+        }
+    }
+}

@@ -1,0 +1,43 @@
+@page "/random-trip"
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<PageTitle>Finding an Adventure...</PageTitle>
+
+<div class="container mx-auto text-center p-24">
+    <h1 class="text-4xl font-bold">Finding a random adventure for you...</h1>
+    <p class="text-lg mt-4">Please wait while we pick a destination!</p>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Vraag een anoniem object op met een 'urlKey' eigenschap
+            var response = await Http.GetFromJsonAsync<UrlKeyResponse>("api/trips/random");
+            if (response != null && !string.IsNullOrEmpty(response.UrlKey))
+            {
+                NavigationManager.NavigateTo($"/trip/{response.UrlKey}");
+            }
+            else
+            {
+                // Fallback voor als er geen key wordt gevonden
+                NavigationManager.NavigateTo("/");
+            }
+        }
+        catch
+        {
+            // Fallback bij een fout
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    // Hulpklasse om de JSON-respons te kunnen ontvangen
+    private class UrlKeyResponse
+    {
+        public string? UrlKey { get; set; }
+    }
+}
