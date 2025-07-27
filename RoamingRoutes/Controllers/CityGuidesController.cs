@@ -54,7 +54,7 @@ public class CityGuidesController : ControllerBase
         var guideImageDirectory = Path.Combine(
             _env.WebRootPath,
             "images",
-            "cities",
+            "cityguides",
             guide.UrlKey ?? ""
         );
         if (Directory.Exists(guideImageDirectory))
@@ -63,7 +63,7 @@ public class CityGuidesController : ControllerBase
             if (headerFile != null)
             {
                 guide.HeaderImageUrl =
-                    $"/images/cities/{guide.UrlKey}/{Path.GetFileName(headerFile)}";
+                    $"/images/cityguides/{guide.UrlKey}/{Path.GetFileName(headerFile)}";
             }
         }
     }
