@@ -226,7 +226,15 @@ public static class DataSeeder
                         newTripsFound = true;
                         var tripEntity = new Trip
                         {
-                            // ... (andere eigenschappen zoals UrlKey, Title, etc.) ...
+                            // Gecorrigeerd: Alle trip-eigenschappen worden nu ingesteld
+                            UrlKey = yamlTrip.UrlKey,
+                            Title = yamlTrip.Title,
+                            Description = yamlTrip.Description,
+                            StartDate = yamlTrip.StartDate,
+                            EndDate = yamlTrip.EndDate,
+                            Country = yamlTrip.Country,
+                            BudgetTotal = yamlTrip.Budget.Total,
+                            BudgetCurrency = yamlTrip.Budget.Currency,
                             Locations = yamlTrip
                                 .TravelItinerary.Select(item =>
                                 {
@@ -240,7 +248,6 @@ public static class DataSeeder
                                         is IDictionary<object, object> complexAccommodation
                                     )
                                     {
-                                        // Converteer het complexe object naar een leesbare string
                                         accommodationString = string.Join(
                                             ", ",
                                             complexAccommodation.Select(kvp =>
@@ -257,7 +264,7 @@ public static class DataSeeder
                                         Latitude = item.LocationGpsLat,
                                         Longitude = item.LocationGpsLon,
                                         Activities = item.Activities,
-                                        Accommodation = accommodationString, // FIX: Wijs de geconverteerde string toe
+                                        Accommodation = accommodationString,
                                     };
                                 })
                                 .ToList(),
