@@ -133,9 +133,12 @@ public static class DataSeeder
         string contentRootPath
     )
     {
-        var guidesDirectory = Path.Combine(contentRootPath, "_contentCache", "Cities");
+        var guidesDirectory = Path.Combine(contentRootPath, "_contentCache", "CityGuides");
         if (!Directory.Exists(guidesDirectory))
+        {
+            logger.LogWarning("City guides directory not found at {Directory}", guidesDirectory);
             return;
+        }
         var guideFiles = Directory
             .GetFiles(guidesDirectory, "*.yaml")
             .Concat(Directory.GetFiles(guidesDirectory, "*.yml"));
@@ -143,49 +146,63 @@ public static class DataSeeder
             return;
 
         logger.LogInformation("--- City Guide Seeder Started ---");
-        var deserializer = new DeserializerBuilder().Build();
+        var deserializer = new DeserializerBuilder().IgnoreUnmatchedProperties().Build();
         var newGuidesFound = false;
 
         foreach (var filePath in guideFiles)
         {
-            var yamlContent = await File.ReadAllTextAsync(filePath);
-            var yamlGuide = deserializer.Deserialize<YamlCityGuide>(yamlContent);
-
-            if (yamlGuide != null && !string.IsNullOrWhiteSpace(yamlGuide.UrlKey))
+            try
             {
-                if (!await context.CityGuides.AnyAsync(g => g.UrlKey == yamlGuide.UrlKey))
+                var yamlContent = await File.ReadAllTextAsync(filePath);
+                var yamlGuide = deserializer.Deserialize<YamlCityGuide>(yamlContent);
+
+                if (yamlGuide != null && !string.IsNullOrWhiteSpace(yamlGuide.UrlKey))
                 {
-                    newGuidesFound = true;
-                    var guideEntity = new CityGuide
+                    if (!await context.CityGuides.AnyAsync(g => g.UrlKey == yamlGuide.UrlKey))
                     {
-                        UrlKey = yamlGuide.UrlKey,
-                        CityName = yamlGuide.CityName,
-                        Country = yamlGuide.Country,
-                        Summary = yamlGuide.Summary,
-                        Introduction = yamlGuide.Introduction,
-                        Sections = yamlGuide
-                            .Sections.Select(s => new GuideSection
-                            {
-                                Title = s.Title,
-                                Icon = s.Icon,
-                                Highlights = s
-                                    .Highlights.Select(h => new Highlight
-                                    {
-                                        Name = h.Name,
-                                        Description = h.Description,
-                                        Costs = h.Costs,
-                                        References = h.References,
-                                    })
-                                    .ToList(),
-                            })
-                            .ToList(),
-                    };
-                    await context.CityGuides.AddAsync(guideEntity);
+                        logger.LogInformation(
+                            "New city guide found: {UrlKey}. Adding to database.",
+                            yamlGuide.UrlKey
+                        );
+                        newGuidesFound = true;
+                        var guideEntity = new CityGuide
+                        {
+                            UrlKey = yamlGuide.UrlKey,
+                            CityName = yamlGuide.CityName,
+                            Country = yamlGuide.Country,
+                            Summary = yamlGuide.Summary,
+                            Introduction = yamlGuide.Introduction,
+                            Sections = yamlGuide
+                                .Sections.Select(s => new GuideSection
+                                {
+                                    Title = s.Title,
+                                    Icon = s.Icon,
+                                    Highlights = s
+                                        .Highlights.Select(h => new Highlight
+                                        {
+                                            Name = h.Name,
+                                            Description = h.Description,
+                                            Costs = h.Costs,
+                                            References = h.References,
+                                        })
+                                        .ToList(),
+                                })
+                                .ToList(),
+                        };
+                        await context.CityGuides.AddAsync(guideEntity);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error processing city guide file: {FilePath}", filePath);
             }
         }
         if (newGuidesFound)
+        {
             await context.SaveChangesAsync();
+            logger.LogInformation("Successfully saved new city guides to the database.");
+        }
         logger.LogInformation("--- City Guide Seeder Finished ---");
     }
 

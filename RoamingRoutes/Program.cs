@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using RoamingRoutes.Client; // Add this if App.razor is in RoamingRoutes.Client namespace
-using RoamingRoutes.Client.Pages;
+using RoamingRoutes.Client;
 using RoamingRoutes.Components;
 using RoamingRoutes.Data;
+using RoamingRoutes.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString =
@@ -12,10 +12,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connect
 
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveWebAssemblyComponents();
-builder.Services.AddSingleton<
-    RoamingRoutes.Services.IGoogleDriveService,
-    RoamingRoutes.Services.GoogleDriveService
->();
+builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 
 builder
     .Services.AddControllers()
@@ -31,40 +28,40 @@ builder
 
 var app = builder.Build();
 
-// Synchroniseer eerst de content van Google Drive
-using (var scope = app.Services.CreateScope())
+// Gebruik een enkele logger voor de hele applicatie-opstart
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+// Stap 1: Synchroniseer content alleen in productie
+if (!app.Environment.IsDevelopment())
 {
-    var driveService =
-        scope.ServiceProvider.GetRequiredService<RoamingRoutes.Services.IGoogleDriveService>();
-    await driveService.SynchronizeContentAsync();
+    logger.LogInformation("Production mode detected. Starting Google Drive synchronization...");
+    using (var scope = app.Services.CreateScope())
+    {
+        var driveService = scope.ServiceProvider.GetRequiredService<IGoogleDriveService>();
+        await driveService.SynchronizeContentAsync();
+    }
+}
+else
+{
+    logger.LogInformation(
+        "Development mode detected. Skipping Google Drive synchronization and using cached content."
+    );
 }
 
-// Synchroniseer eerst de content van Google Drive
-using (var scope = app.Services.CreateScope())
-{
-    var driveService =
-        scope.ServiceProvider.GetRequiredService<RoamingRoutes.Services.IGoogleDriveService>();
-    await driveService.SynchronizeContentAsync();
-}
-
-// Seed daarna de database met de zojuist gedownloade content
+// Stap 2: Seed de database met de (zojuist gedownloade of gecachte) content
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var dbContext = services.GetRequiredService<AppDbContext>();
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        var env = services.GetRequiredService<IWebHostEnvironment>(); // Haal de environment op
+        var env = services.GetRequiredService<IWebHostEnvironment>();
 
         await dbContext.Database.MigrateAsync();
-
-        // Geef het correcte pad mee aan de seeder
-        await RoamingRoutes.Data.DataSeeder.SeedAsync(dbContext, logger, env.ContentRootPath);
+        await DataSeeder.SeedAsync(dbContext, logger, env.ContentRootPath);
     }
-    catch (System.Exception ex)
+    catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred during database seeding.");
     }
 }
@@ -77,12 +74,10 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.MapControllers();
 app.UseAntiforgery();

@@ -88,6 +88,8 @@ public class GoogleDriveService : IGoogleDriveService
         foreach (var file in result.Files)
         {
             var newRelativePath = Path.Combine(relativePath, file.Name);
+            _logger.LogInformation("Processing remote file: {FileName}", file.Name);
+
             if (file.MimeType == "application/vnd.google-apps.folder")
             {
                 await ListAllRemoteFilesRecursive(service, file.Id, newRelativePath, expectedFiles);
