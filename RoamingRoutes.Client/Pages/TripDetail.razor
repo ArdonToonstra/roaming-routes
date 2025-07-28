@@ -17,163 +17,162 @@ else
     <PageTitle>@trip.Title</PageTitle>
 
     <div class="container mx-auto px-6 py-16">
-        <div class="text-center mb-8">
+        <div class="text-center mb-12">
             <p class="text-orange-600 font-semibold">Travel Itinerary</p>
             <h1 class="text-5xl md:text-6xl font-bold mt-2">@trip.Title</h1>
         </div>
 
-        <div class="text-center mb-12">
-            <div class="inline-flex rounded-md shadow-sm" role="group">
-                <button @onclick='() => SetView("overview")' type="button" class="px-4 py-2 text-sm font-medium @(currentView == "overview" ? "bg-orange-600 text-white" : "bg-white text-gray-900") rounded-l-lg border border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
-                    Overview
-                </button>
-                <button @onclick='() => SetView("timeline")' type="button" class="px-4 py-2 text-sm font-medium @(currentView == "timeline" ? "bg-orange-600 text-white" : "bg-white text-gray-900") border-t border-b border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
-                    Timeline View
-                </button>
-                <button @onclick='() => SetView("interactive")' type="button" class="px-4 py-2 text-sm font-medium @(currentView == "interactive" ? "bg-orange-600 text-white" : "bg-white text-gray-900") rounded-r-md border border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
-                    Interactive View
-                </button>
-            </div>
-        </div>
-
-        @if (currentView == "overview")
+        @if (trip.OverviewPhotoUrls.Any())
         {
-            <div class="max-w-4xl mx-auto">
-                <h2 class="text-3xl font-bold mb-6 text-center">Trip at a Glance</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8">
-                    <div class="bg-white p-4 rounded-lg shadow-md">
-                        <h4 class="font-semibold text-gray-500">Duration</h4>
-                        <p class="text-2xl font-bold text-orange-600">@((trip.EndDate - trip.StartDate)?.Days ?? 0) Days</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-md">
-                        <h4 class="font-semibold text-gray-500">Country</h4>
-                        <p class="text-2xl font-bold text-orange-600">@trip.Country</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-md">
-                        <h4 class="font-semibold text-gray-500">Budget</h4>
-                        <p class="text-2xl font-bold text-orange-600">@trip.BudgetTotal?.ToString("C0", CultureInfo.GetCultureInfo(trip.BudgetCurrency ?? "EUR"))</p>
-                    </div>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md mb-12">
-                    <h4 class="text-2xl font-bold mb-4">About This Trip</h4>
-                    <p class="text-gray-700 leading-relaxed">@trip.Description</p>
-                </div>
-
-                @if (!isMapModalVisible)
+            <div class="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4 mb-16">
+                @foreach (var photoUrl in trip.OverviewPhotoUrls)
                 {
-                    <div class="mb-12 rounded-lg shadow-xl overflow-hidden cursor-pointer h-96" @onclick="ToggleMapModal">
-                        <Map @ref="mapComponent" GeoJsonUrl="@($"api/trips/{UrlKey}/geojson")" />
-                    </div>
-                }
-                
-                @if (trip.OverviewPhotoUrls.Any())
-                {
-                    <div class="mt-8">
-                        <h4 class="text-2xl font-bold mb-4 text-center">Photo Highlights</h4>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            @foreach (var photoUrl in trip.OverviewPhotoUrls)
-                            {
-                                <img src="@photoUrl" alt="Trip highlight photo" class="rounded-lg shadow-md object-cover w-full h-full" />
-                            }
-                        </div>
+                    <div class="aspect-w-1 aspect-h-1">
+                        <img src="@photoUrl" alt="Trip highlight photo" class="rounded-lg shadow-md object-cover w-full h-full" />
                     </div>
                 }
             </div>
-        }        else if (currentView == "timeline")
-        {
-            <div class="max-w-4xl mx-auto">
-                @foreach (var location in trip.Locations.OrderBy(l => l.Day))
+        }
+
+        <div class="lg:grid lg:grid-cols-12 lg:gap-12">
+            <aside class="lg:col-span-3 lg:sticky top-24 self-start mb-8 lg:mb-0">
+                <nav class="flex flex-col space-y-2">
+                    <button @onclick='() => SetView("overview")' type="button" class="px-4 py-2 text-left font-medium @(currentView == "overview" ? "bg-orange-600 text-white" : "bg-white text-gray-900") rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
+                        Overview
+                    </button>
+                    <button @onclick='() => SetView("timeline")' type="button" class="px-4 py-2 text-left font-medium @(currentView == "timeline" ? "bg-orange-600 text-white" : "bg-white text-gray-900") rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
+                        Timeline View
+                    </button>
+                    <button @onclick='() => SetView("interactive")' type="button" class="px-4 py-2 text-left font-medium @(currentView == "interactive" ? "bg-orange-600 text-white" : "bg-white text-gray-900") rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
+                        Interactive View
+                    </button>
+                </nav>
+            </aside>
+
+            <main class="lg:col-span-9">
+                @if (currentView == "overview")
                 {
-                    var carouselId = $"photos-day-{location.Day}";
-                    <div class="flex items-start space-x-4 md:space-x-8 mb-12">
-                        <div class="flex flex-col items-center flex-shrink-0">
-                            <div class="bg-orange-600 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl ring-4 ring-orange-100">@location.Day</div>
-                            @if (location.Day < trip.Locations.Max(l => l.Day)) { <div class="w-px h-full bg-gray-300 mt-2"></div> }
+                    <h2 class="text-3xl font-bold mb-6 text-center lg:text-left">Trip at a Glance</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8">
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h4 class="font-semibold text-gray-500">Duration</h4>
+                            <p class="text-2xl font-bold text-orange-600">@((trip.EndDate - trip.StartDate)?.Days ?? 0) Days</p>
                         </div>
-                        <div class="flex-1">
-                            <div class="bg-white p-6 rounded-lg shadow-md">
-                                <h3 class="text-2xl font-semibold">@location.Description</h3>
-                                <p class="text-sm text-gray-500 mb-4">@location.Date</p>
-                                @if(location.Activities.Any()) {
-                                    <ul class="list-disc list-inside text-gray-700 space-y-2">
-                                        @foreach(var activity in location.Activities) { <li>@activity</li> }
-                                    </ul>
-                                }
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h4 class="font-semibold text-gray-500">Country</h4>
+                            <p class="text-2xl font-bold text-orange-600">@trip.Country</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h4 class="font-semibold text-gray-500">Budget</h4>
+                            <p class="text-2xl font-bold text-orange-600">@trip.BudgetTotal?.ToString("C0", CultureInfo.GetCultureInfo(trip.BudgetCurrency ?? "EUR"))</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md mb-12">
+                        <h4 class="text-2xl font-bold mb-4">About This Trip</h4>
+                        <p class="text-gray-700 leading-relaxed">@trip.Description</p>
+                    </div>
+
+                    @if (!isMapModalVisible)
+                    {
+                        <div class="mb-12 rounded-lg shadow-xl overflow-hidden cursor-pointer h-96" @onclick="ToggleMapModal">
+                            <Map @ref="mapComponent" GeoJsonUrl="@($"api/trips/{UrlKey}/geojson")" />
+                        </div>
+                    }
+                }
+                else if (currentView == "timeline")
+                {
+                    <div class="max-w-4xl">
+                        @foreach (var location in trip.Locations.OrderBy(l => l.Day))
+                        {
+                            var carouselId = $"photos-day-{location.Day}";
+                            <div class="flex items-start space-x-4 md:space-x-8 mb-12">
+                                <div class="flex flex-col items-center flex-shrink-0">
+                                    <div class="bg-orange-600 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl ring-4 ring-orange-100">@location.Day</div>
+                                    @if (location.Day < trip.Locations.Max(l => l.Day)) { <div class="w-px h-full bg-gray-300 mt-2"></div> }
+                                </div>
+                                <div class="flex-1">
+                                    <div class="bg-white p-6 rounded-lg shadow-md">
+                                        <h3 class="text-2xl font-semibold">@location.Description</h3>
+                                        <p class="text-sm text-gray-500 mb-4">@location.Date</p>
+                                        @if(location.Activities.Any()) {
+                                            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                                                @foreach(var activity in location.Activities) { <li>@activity</li> }
+                                            </ul>
+                                        }
+                                    </div>
+                                    @if (location.PhotoUrls.Any())
+                                    {
+                                        <div class="relative mt-4">
+                                            <div id="@carouselId" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 -mx-2 px-2" style="scrollbar-width: none; -ms-overflow-style: none;">
+                                                @foreach(var photoUrl in location.PhotoUrls)
+                                                {
+                                                    <div class="flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 snap-start px-2">
+                                                        <img src="@photoUrl" alt="Foto voor dag @location.Day" class="rounded-lg object-cover w-full h-48" />
+                                                    </div>
+                                                }
+                                            </div>
+                                            <button @onclick='() => ScrollCarousel(carouselId, -1)' class="absolute top-1/2 left-0 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow-md z-10 @(carouselStates.ContainsKey(carouselId) && carouselStates[carouselId].CanScrollLeft ? "" : "hidden")">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                            </button>
+                                            <button @onclick='() => ScrollCarousel(carouselId, 1)' class="absolute top-1/2 right-0 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow-md z-10 @(carouselStates.ContainsKey(carouselId) && carouselStates[carouselId].CanScrollRight ? "" : "hidden")">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
                             </div>
-                            <!-- Foto Carrousel -->
-                            @if (location.PhotoUrls.Any())
-                            {
-                                <div class="relative mt-4">
-                                    <div id="@carouselId" class="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 -mx-2 px-2" style="scrollbar-width: none; -ms-overflow-style: none;">
-                                        @foreach(var photoUrl in location.PhotoUrls)
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="flex flex-col items-center">
+                        @if (selectedLocation != null)
+                        {
+                            <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-5xl">
+                                <div class="flex items-center justify-between mb-4">
+                                    <button @onclick="SelectPreviousDay" disabled="@(!hasPreviousDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
+                                    <div class="text-center">
+                                        <h3 class="text-3xl font-bold text-gray-900">@selectedLocation.Description</h3>
+                                        <p class="text-md text-gray-500 mt-1">Day @selectedLocation.Day &bull; @selectedLocation.Date</p>
+                                    </div>
+                                    <button @onclick="SelectNextDay" disabled="@(!hasNextDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                    <div>
+                                        <DailyMapView Location="selectedLocation" />
+                                    </div>
+                                    <div>
+                                        @if (selectedLocation.Activities.Any())
                                         {
-                                            <div class="flex-shrink-0 w-full sm:w-1/2 lg:w-1/3 snap-start px-2">
-                                                <img src="@photoUrl" alt="Foto voor dag @location.Day" class="rounded-lg object-cover w-full h-48" />
+                                            <h4 class="font-semibold mb-2">Activities:</h4>
+                                            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                                                @foreach(var activity in selectedLocation.Activities) { <li>@activity</li> }
+                                            </ul>
+                                        }
+                                        @if (selectedLocation.PhotoUrls.Any())
+                                        {
+                                            <div class="mt-4 grid grid-cols-2 gap-2">
+                                                @foreach(var photoUrl in selectedLocation.PhotoUrls)
+                                                {
+                                                    <img src="@photoUrl" alt="Foto voor dag @selectedLocation.Day" class="rounded-lg object-cover w-full h-full" />
+                                                }
                                             </div>
                                         }
                                     </div>
-                                    <button @onclick='() => ScrollCarousel(carouselId, -1)' class="absolute top-1/2 left-0 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow-md z-10 @(carouselStates.ContainsKey(carouselId) && carouselStates[carouselId].CanScrollLeft ? "" : "hidden")">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                                    </button>
-                                    <button @onclick='() => ScrollCarousel(carouselId, 1)' class="absolute top-1/2 right-0 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow-md z-10 @(carouselStates.ContainsKey(carouselId) && carouselStates[carouselId].CanScrollRight ? "" : "hidden")">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                                    </button>
                                 </div>
-                            }
-                        </div>
+                            </div>
+                        }
                     </div>
                 }
-            </div>
-        }
-        else
-        {
-            <div class="flex flex-col items-center">
-                @if (selectedLocation != null)
-                {
-                    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-5xl">
-                        <div class="flex items-center justify-between mb-4">
-                            <button @onclick="SelectPreviousDay" disabled="@(!hasPreviousDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                            </button>
-                            <div class="text-center">
-                                <h3 class="text-3xl font-bold text-gray-900">@selectedLocation.Description</h3>
-                                <p class="text-md text-gray-500 mt-1">Day @selectedLocation.Day &bull; @selectedLocation.Date</p>
-                            </div>
-                            <button @onclick="SelectNextDay" disabled="@(!hasNextDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                            </button>
-                        </div>
-                        <!-- Herstelde content voor Interactive View -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            <div>
-                                <DailyMapView Location="selectedLocation" />
-                            </div>
-                            <div>
-                                @if (selectedLocation.Activities.Any())
-                                {
-                                    <h4 class="font-semibold mb-2">Activities:</h4>
-                                    <ul class="list-disc list-inside text-gray-700 space-y-2">
-                                        @foreach(var activity in selectedLocation.Activities) { <li>@activity</li> }
-                                    </ul>
-                                }
-                                @if (selectedLocation.PhotoUrls.Any())
-                                {
-                                    <div class="mt-4 grid grid-cols-2 gap-2">
-                                        @foreach(var photoUrl in selectedLocation.PhotoUrls)
-                                        {
-                                            <img src="@photoUrl" alt="Foto voor dag @selectedLocation.Day" class="rounded-lg object-cover w-full h-full" />
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
+            </main>
+        </div>
     </div>
 
-    <!-- Kaart Modal -->
     @if (isMapModalVisible)
     {
         <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" @onclick="ToggleMapModal">
@@ -201,7 +200,6 @@ else
 
     private Dictionary<string, CarouselState> carouselStates = new();
     private DotNetObjectReference<TripDetail>? objRef;
-
     public class CarouselState
     {
         public bool CanScrollLeft { get; set; }
@@ -276,7 +274,6 @@ else
 
     private bool hasPreviousDay => selectedLocation != null && selectedLocation.Day > trip?.Locations.Min(l => l.Day);
     private bool hasNextDay => selectedLocation != null && selectedLocation.Day < trip?.Locations.Max(l => l.Day);
-
     private async Task SelectPreviousDay()
     {
         if (hasPreviousDay && trip != null)
