@@ -64,7 +64,7 @@ window.roamingRoutesMap = {
             }).addTo(map);
 
             this.routeLayers[elementId] = routeLayer;
-            map.fitBounds(routeLayer.getBounds().pad(0.1)); // Zoom in op de getekende route
+            map.fitBounds(routeLayer.getBounds().pad(0.2)); // Zoom in op de getekende route
         } catch (error) {
             console.error("Error drawing route:", error);
         }

@@ -17,22 +17,12 @@ else
     <PageTitle>@trip.Title</PageTitle>
 
     <div class="container mx-auto px-6 py-16">
-        <!-- Trip Header -->
-        <div class="text-center mb-12">
+        <div class="text-center mb-8">
             <p class="text-orange-600 font-semibold">Travel Itinerary</p>
             <h1 class="text-5xl md:text-6xl font-bold mt-2">@trip.Title</h1>
         </div>
 
-        <!-- Interactieve kaart alleen in Overview -->
-        @if (currentView == "overview")
-        {
-            <div class="mb-12 rounded-lg shadow-xl overflow-hidden cursor-pointer h-80" @onclick="ToggleMapModal">
-                <Map @ref="mapComponent" GeoJsonUrl="@($"api/trips/{UrlKey}/geojson")" />
-            </div>
-        }
-
-        <!-- View Switcher -->
-        <div class="text-center mb-8">
+        <div class="text-center mb-12">
             <div class="inline-flex rounded-md shadow-sm" role="group">
                 <button @onclick='() => SetView("overview")' type="button" class="px-4 py-2 text-sm font-medium @(currentView == "overview" ? "bg-orange-600 text-white" : "bg-white text-gray-900") rounded-l-lg border border-gray-200 hover:bg-gray-100 hover:text-orange-700 transition-colors duration-200">
                     Overview
@@ -46,7 +36,6 @@ else
             </div>
         </div>
 
-        <!-- Itinerary Details (Dynamische weergave) -->
         @if (currentView == "overview")
         {
             <div class="max-w-4xl mx-auto">
@@ -65,10 +54,18 @@ else
                         <p class="text-2xl font-bold text-orange-600">@trip.BudgetTotal?.ToString("C0", CultureInfo.GetCultureInfo(trip.BudgetCurrency ?? "EUR"))</p>
                     </div>
                 </div>
-                <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="bg-white p-6 rounded-lg shadow-md mb-12">
                     <h4 class="text-2xl font-bold mb-4">About This Trip</h4>
                     <p class="text-gray-700 leading-relaxed">@trip.Description</p>
                 </div>
+
+                @if (!isMapModalVisible)
+                {
+                    <div class="mb-12 rounded-lg shadow-xl overflow-hidden cursor-pointer h-96" @onclick="ToggleMapModal">
+                        <Map @ref="mapComponent" GeoJsonUrl="@($"api/trips/{UrlKey}/geojson")" />
+                    </div>
+                }
+                
                 @if (trip.OverviewPhotoUrls.Any())
                 {
                     <div class="mt-8">
@@ -82,8 +79,7 @@ else
                     </div>
                 }
             </div>
-        }
-        else if (currentView == "timeline")
+        }        else if (currentView == "timeline")
         {
             <div class="max-w-4xl mx-auto">
                 @foreach (var location in trip.Locations.OrderBy(l => l.Day))
