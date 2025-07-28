@@ -94,20 +94,37 @@ window.roamingRoutesMap = {
     },
 
         initDailyMap: function (elementId, lat, lon, day, zoomLevel) {
-            const map = L.map(elementId, {
-                scrollWheelZoom: false
-            }).setView([lat, lon], zoomLevel || 13);
+    // Verwijder eventuele oude kaart-instantie om conflicten te voorkomen
+    if (this.maps[elementId]) {
+        this.maps[elementId].remove();
+    }
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
+    const map = L.map(elementId, {
+        scrollWheelZoom: false, // Start met scrollen uitgeschakeld
+        dragging: false, // Start met slepen uitgeschakeld
+    }).setView([lat, lon], zoomLevel || 13);
 
-            L.marker([lat, lon]).addTo(map)
-                .bindPopup(`<b>Dag ${day}</b>`)
-                .openPopup();
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
 
-            this.maps[elementId] = map;
-        },
+    L.marker([lat, lon]).addTo(map)
+        .bindPopup(`<b>Dag ${day}</b>`)
+        .openPopup();
+    
+    // Voeg een visuele hint toe dat de kaart niet interactief is
+    const overlay = L.DomUtil.create('div', 'leaflet-interactive-overlay', map.getContainer());
+    overlay.innerHTML = '<p>Klik om te activeren</p>';
+    
+    // Maak de kaart interactief na de eerste klik
+    map.once('click', function () {
+        map.scrollWheelZoom.enable();
+        map.dragging.enable();
+        L.DomUtil.remove(overlay); // Verwijder de hint
+    });
+
+    this.maps[elementId] = map;
+},
         
     invalidateSize: function (elementId) {
         const map = this.maps[elementId];

@@ -1,23 +1,28 @@
 @inject IJSRuntime JSRuntime
 @using RoamingRoutes.Shared.Models
 
-<div id="@mapId" class="w-full h-64 rounded-lg shadow-md"></div>
+<div id="@mapId" class="w-full h-full rounded-lg shadow-md"></div>
 
 @code {
     private string mapId = $"map-{Guid.NewGuid()}";
-
+    
     [Parameter]
     public Location? Location { get; set; }
 
+    // OnAfterRenderAsync wordt aangeroepen NADAT de component is gerenderd.
+    // Dit garandeert dat de mapId div bestaat in de DOM.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // We initialiseren de kaart alleen op de eerste render van deze component-instantie.
+        // Omdat we @key gebruiken in de parent, wordt voor elke dag een nieuwe instantie gemaakt.
         if (firstRender && Location != null)
         {
             await JSRuntime.InvokeVoidAsync("roamingRoutesMap.initDailyMap", 
                 mapId, 
                 Location.Latitude, 
                 Location.Longitude, 
-                Location.Day);
+                Location.Day,
+                13); // Standaard zoom level
         }
     }
 }

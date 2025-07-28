@@ -124,51 +124,50 @@ else
                         }
                     </div>
                 }
-                else
-                {
-                    <div class="flex flex-col items-center">
-                        @if (selectedLocation != null)
-                        {
-                            <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-5xl">
-                                <div class="flex items-center justify-between mb-4">
-                                    <button @onclick="SelectPreviousDay" disabled="@(!hasPreviousDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                                    </button>
-                                    <div class="text-center">
-                                        <h3 class="text-3xl font-bold text-gray-900">@selectedLocation.Description</h3>
-                                        <p class="text-md text-gray-500 mt-1">Day @selectedLocation.Day &bull; @selectedLocation.Date</p>
-                                    </div>
-                                    <button @onclick="SelectNextDay" disabled="@(!hasNextDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                                    </button>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                                    <div>
-                                        <DailyMapView Location="selectedLocation" />
-                                    </div>
-                                    <div>
-                                        @if (selectedLocation.Activities.Any())
-                                        {
-                                            <h4 class="font-semibold mb-2">Activities:</h4>
-                                            <ul class="list-disc list-inside text-gray-700 space-y-2">
-                                                @foreach(var activity in selectedLocation.Activities) { <li>@activity</li> }
-                                            </ul>
-                                        }
-                                        @if (selectedLocation.PhotoUrls.Any())
-                                        {
-                                            <div class="mt-4 grid grid-cols-2 gap-2">
-                                                @foreach(var photoUrl in selectedLocation.PhotoUrls)
-                                                {
-                                                    <img src="@photoUrl" alt="Foto voor dag @selectedLocation.Day" class="rounded-lg object-cover w-full h-full" />
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        }
+               else
+{
+    @if (selectedLocation != null)
+    {
+        <div class="flex flex-col items-center">
+            <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-5xl mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <button @onclick="SelectPreviousDay" disabled="@(!hasPreviousDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div class="text-center">
+                        <h3 class="text-3xl font-bold text-gray-900">@selectedLocation.Description</h3>
+                        <p class="text-md text-gray-500 mt-1">Day @selectedLocation.Day &bull; @selectedLocation.Date</p>
                     </div>
-                }
+                    <button @onclick="SelectNextDay" disabled="@(!hasNextDay)" class="p-2 rounded-full hover:bg-gray-200 disabled:opacity-25 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+                <div>
+                    @if (selectedLocation.Activities.Any())
+                    {
+                        <h4 class="font-semibold mb-2 mt-6">Activities:</h4>
+                        <ul class="list-disc list-inside text-gray-700 space-y-2">
+                            @foreach(var activity in selectedLocation.Activities) { <li>@activity</li> }
+                        </ul>
+                    }
+                    @if (selectedLocation.PhotoUrls.Any())
+                    {
+                        <div class="mt-4 grid grid-cols-2 gap-2">
+                            @foreach(var photoUrl in selectedLocation.PhotoUrls)
+                            {
+                                <img src="@photoUrl" alt="Foto voor dag @selectedLocation.Day" class="rounded-lg object-cover w-full h-full" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="w-full max-w-5xl h-96">
+                <DailyMapView @key="selectedLocation.Id" Location="selectedLocation" />
+            </div>
+        </div>
+    }
+}
             </main>
         </div>
     </div>
