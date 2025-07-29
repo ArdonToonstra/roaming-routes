@@ -79,6 +79,7 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.MapControllers();
 app.UseAntiforgery();
 

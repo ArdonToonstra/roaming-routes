@@ -1,97 +1,186 @@
 window.roamingRoutesWorldMap = {
     map: null,
     geoJsonLayer: null,
-    navigationHelper: null, // To call Blazor methods
-
+    navigationHelper: null,
+    
     initialize: async function (elementId, navigationHelper) {
-        console.log("Attempting to initialize world map...");
+        console.log("=== WorldMap Initialize Started ===");
+        console.log("Element ID:", elementId);
+        console.log("Navigation Helper:", navigationHelper);
+        
         this.navigationHelper = navigationHelper;
 
         if (this.map) {
+            console.log("Removing existing map");
             this.map.remove();
         }
 
         const container = document.getElementById(elementId);
+        console.log("Container found:", container);
         if (!container) {
             console.error(`Map container #${elementId} not found.`);
             return;
         }
 
-        this.map = L.map(elementId, {
-            center: [20, 0],
-            zoom: 2,
-            maxBounds: [[-90, -180], [90, 180]],
-            maxBoundsViscosity: 1.0
-        });
+        console.log("Creating Leaflet map...");
+        try {
+            this.map = L.map(elementId, {
+                center: [20, 0],
+                zoom: 2,
+                maxBounds: [[-90, -180], [90, 180]],
+                maxBoundsViscosity: 1.0
+            });
+            console.log("Leaflet map created successfully");
+        } catch (error) {
+            console.error("Error creating Leaflet map:", error);
+            return;
+        }
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            minZoom: 2,
-            noWrap: true
-        }).addTo(this.map);
+        console.log("Adding tile layer...");
+        try {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                minZoom: 2,
+                noWrap: true
+            }).addTo(this.map);
+            console.log("Tile layer added successfully");
+        } catch (error) {
+            console.error("Error adding tile layer:", error);
+            return;
+        }
 
         try {
             // Step 1: Fetch trip data
-            console.log("Fetching trip country data from /api/trips/countries");
-            const tripsResponse = await fetch('/api/trips/countries');
-            if (!tripsResponse.ok) {
-                console.error("Failed to fetch trip countries. Status:", tripsResponse.status);
-                return;
+            const response = await fetch('/api/trips/countries');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const trips = await tripsResponse.json();
-            const tripCountries = trips.map(t => t.countryCode);
-            console.log("Found trip countries:", tripCountries);
+            
+            const trips = await response.json();
 
-            // Step 2: Fetch the world map GeoJSON data
-            console.log("Fetching GeoJSON data from countries.geojson");
-            const geoJsonResponse = await fetch('countries.geojson');
-             if (!geoJsonResponse.ok) {
-                console.error("Failed to fetch countries.geojson. Status:", geoJsonResponse.status);
-                alert("Error: Could not load the world map data (countries.geojson). Please ensure the file exists in the wwwroot folder.");
-                return;
+            // Step 2: Load and display countries
+            await this.loadAndDisplayCountries(trips);
+            
+        } catch (error) {
+            console.error("Error in WorldMap initialize:", error);
+        }
+    },
+
+    loadAndDisplayCountries: async function(trips) {
+        try {
+            // Fetch the world countries GeoJSON
+            const geoResponse = await fetch('/countries.json');
+            if (!geoResponse.ok) {
+                throw new Error(`Failed to load countries.json: ${geoResponse.status}`);
             }
-            const geoJsonData = await geoJsonResponse.json();
-            console.log("Successfully loaded countries.geojson");
-
-
-            this.geoJsonLayer = L.geoJSON(geoJsonData, {
+            
+            const countriesGeoJson = await geoResponse.json();
+            
+            // Create a map of trip country codes for quick lookup (using 3-letter codes)
+            const tripCountries3Letter = new Set(trips.map(t => t.countryCode));
+            
+            // Create a map for trip data lookup
+            const tripDataMap = new Map();
+            trips.forEach(trip => {
+                tripDataMap.set(trip.countryCode, trip);
+            });
+            
+            // Add the GeoJSON layer with styling
+            this.geoJsonLayer = L.geoJSON(countriesGeoJson, {
                 style: (feature) => {
-                    // *** THIS IS THE KEY FIX ***
-                    const countryCode = feature.properties.iso_a2; // Correctly access the ISO code
-                    const hasTrip = tripCountries.includes(countryCode);
+                    const countryCode3 = feature.id;
+                    const hasTrip = tripCountries3Letter.has(countryCode3);
+                    
                     return {
-                        fillColor: hasTrip ? '#FD8D3C' : '#BDBDBD',
+                        fillColor: hasTrip ? '#F97316' : '#E5E7EB', // Orange color for trips
                         weight: 1,
                         opacity: 1,
-                        color: 'white',
-                        fillOpacity: 0.8
+                        color: '#374151',
+                        fillOpacity: hasTrip ? 0.7 : 0.1
                     };
                 },
                 onEachFeature: (feature, layer) => {
-                    const countryCode = feature.properties.iso_a2; // Use the same correct property here
-                    const trip = trips.find(t => t.countryCode === countryCode);
-                    if (trip) {
-                        layer.on({
-                            mouseover: (e) => {
-                                e.target.setStyle({ weight: 2, color: '#E65100', fillOpacity: 0.9 });
-                            },
-                            mouseout: (e) => {
-                                this.geoJsonLayer.resetStyle(e.target);
-                            },
-                            click: () => {
-                                this.navigationHelper.invokeMethodAsync('NavigateToTrip', trip.urlKey);
-                            }
+                    const countryCode3 = feature.id;
+                    const tripData = tripDataMap.get(countryCode3);
+                    
+                    if (tripData) {
+                        // Add hover effects
+                        layer.on('mouseover', function(e) {
+                            this.setStyle({
+                                weight: 3,
+                                fillOpacity: 0.9
+                            });
                         });
-                        layer.bindTooltip(feature.properties.name, { sticky: true });
+                        
+                        layer.on('mouseout', function(e) {
+                            this.setStyle({
+                                weight: 1,
+                                fillOpacity: 0.7
+                            });
+                        });
+                        
+                        // Add click handler
+                        layer.on('click', () => {
+                            this.navigationHelper.invokeMethodAsync('NavigateToTrip', tripData.urlKey);
+                        });
+                        
+                        // Add popup with trip title
+                        layer.bindPopup(`
+                            <div class="text-center">
+                                <h3 class="font-bold">${tripData.title}</h3>
+                                <p class="text-sm text-gray-600">Click to view our journey</p>
+                            </div>
+                        `);
                     }
                 }
             }).addTo(this.map);
-            console.log("World map drawn successfully.");
+            
         } catch (error) {
-            console.error("A critical error occurred during world map initialization:", error);
+            console.error("Error loading countries:", error);
+            
+            // Fallback: Create simple markers for countries
+            this.createCountryMarkers(trips);
         }
+    },
+
+    createCountryMarkers: function(trips) {
+        // Fallback method: create markers for countries
+        // This is a simple fallback if GeoJSON loading fails
+        const countryCoordinates = {
+            'KG': [41.2044, 74.7661], // Kyrgyzstan
+            'UZ': [41.3775, 64.5853], // Uzbekistan
+            'KZ': [48.0196, 66.9237], // Kazakhstan
+            'TJ': [38.8610, 71.2761], // Tajikistan
+            // Add more country coordinates as needed
+        };
+        
+        trips.forEach(trip => {
+            const coords = countryCoordinates[trip.countryCode];
+            if (coords) {
+                L.marker(coords)
+                    .addTo(this.map)
+                    .bindPopup(`<b>Click to view our ${trip.countryCode} journey</b>`)
+                    .on('click', () => {
+                        this.navigationHelper.invokeMethodAsync('NavigateToTrip', trip.urlKey);
+                    });
+            }
+        });
+    },
+
+    destroy: function () {
+        if (this.geoJsonLayer) {
+            this.geoJsonLayer.remove();
+            this.geoJsonLayer = null;
+        }
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
+        this.navigationHelper = null;
     }
 };
+
 
 window.roamingRoutesMap = {
     maps: {}, // Object om kaart-instanties op te slaan

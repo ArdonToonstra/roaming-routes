@@ -1,3 +1,4 @@
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -11,8 +12,15 @@
     {
         if (firstRender)
         {
-            objRef = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("roamingRoutesWorldMap.initialize", "world-map", objRef);
+            try
+            {
+                objRef = DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("roamingRoutesWorldMap.initialize", "world-map", objRef);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"WorldMap: Error calling JavaScript: {ex.Message}");
+            }
         }
     }
 
@@ -24,6 +32,15 @@
 
     public void Dispose()
     {
+        try
+        {
+            JSRuntime.InvokeVoidAsync("roamingRoutesWorldMap.destroy");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error destroying WorldMap: {ex.Message}");
+        }
+        
         objRef?.Dispose();
     }
 }

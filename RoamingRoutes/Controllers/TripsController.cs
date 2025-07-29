@@ -55,11 +55,11 @@ public class TripsController : ControllerBase
     [HttpGet("countries")]
     public async Task<ActionResult<IEnumerable<object>>> GetTripCountries()
     {
-        var tripCountries = await _context.Trips
-            .Where(t => !string.IsNullOrEmpty(t.CountryCode))
-            .Select(t => new { t.CountryCode, t.UrlKey })
-            .Distinct()
-            .ToListAsync();
+         var tripCountries = await _context.Trips
+        .Where(t => !string.IsNullOrEmpty(t.CountryCode))
+        .Select(t => new { countryCode = t.CountryCode, urlKey = t.UrlKey, title = t.Title })
+        .Distinct()
+        .ToListAsync();
 
         return Ok(tripCountries);
     }
