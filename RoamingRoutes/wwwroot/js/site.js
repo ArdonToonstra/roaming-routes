@@ -125,13 +125,20 @@ window.roamingRoutesWorldMap = {
                             this.navigationHelper.invokeMethodAsync('NavigateToTrip', tripData.urlKey);
                         });
                         
-                        // Add popup with trip title
+                        // Add popup with trip title (shows on click)
                         layer.bindPopup(`
                             <div class="text-center">
                                 <h3 class="font-bold">${tripData.title}</h3>
                                 <p class="text-sm text-gray-600">Click to view our journey</p>
                             </div>
                         `);
+                        
+                        // Add tooltip with trip title (shows on hover)
+                        layer.bindTooltip(tripData.title, {
+                            permanent: false,
+                            direction: 'top',
+                            className: 'custom-tooltip'
+                        });
                     }
                 }
             }).addTo(this.map);
