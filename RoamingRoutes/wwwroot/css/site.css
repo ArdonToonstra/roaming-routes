@@ -23,6 +23,16 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Hide scrollbars for photo carousels */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
+}
+
 
 .leaflet-interactive-overlay {
     position: absolute;
