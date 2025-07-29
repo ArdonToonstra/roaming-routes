@@ -1,3 +1,97 @@
+window.roamingRoutesWorldMap = {
+    map: null,
+    geoJsonLayer: null,
+    navigationHelper: null, // To call Blazor methods
+
+    initialize: async function (elementId, navigationHelper) {
+        console.log("Attempting to initialize world map...");
+        this.navigationHelper = navigationHelper;
+
+        if (this.map) {
+            this.map.remove();
+        }
+
+        const container = document.getElementById(elementId);
+        if (!container) {
+            console.error(`Map container #${elementId} not found.`);
+            return;
+        }
+
+        this.map = L.map(elementId, {
+            center: [20, 0],
+            zoom: 2,
+            maxBounds: [[-90, -180], [90, 180]],
+            maxBoundsViscosity: 1.0
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            minZoom: 2,
+            noWrap: true
+        }).addTo(this.map);
+
+        try {
+            // Step 1: Fetch trip data
+            console.log("Fetching trip country data from /api/trips/countries");
+            const tripsResponse = await fetch('/api/trips/countries');
+            if (!tripsResponse.ok) {
+                console.error("Failed to fetch trip countries. Status:", tripsResponse.status);
+                return;
+            }
+            const trips = await tripsResponse.json();
+            const tripCountries = trips.map(t => t.countryCode);
+            console.log("Found trip countries:", tripCountries);
+
+            // Step 2: Fetch the world map GeoJSON data
+            console.log("Fetching GeoJSON data from countries.geojson");
+            const geoJsonResponse = await fetch('countries.geojson');
+             if (!geoJsonResponse.ok) {
+                console.error("Failed to fetch countries.geojson. Status:", geoJsonResponse.status);
+                alert("Error: Could not load the world map data (countries.geojson). Please ensure the file exists in the wwwroot folder.");
+                return;
+            }
+            const geoJsonData = await geoJsonResponse.json();
+            console.log("Successfully loaded countries.geojson");
+
+
+            this.geoJsonLayer = L.geoJSON(geoJsonData, {
+                style: (feature) => {
+                    // *** THIS IS THE KEY FIX ***
+                    const countryCode = feature.properties.iso_a2; // Correctly access the ISO code
+                    const hasTrip = tripCountries.includes(countryCode);
+                    return {
+                        fillColor: hasTrip ? '#FD8D3C' : '#BDBDBD',
+                        weight: 1,
+                        opacity: 1,
+                        color: 'white',
+                        fillOpacity: 0.8
+                    };
+                },
+                onEachFeature: (feature, layer) => {
+                    const countryCode = feature.properties.iso_a2; // Use the same correct property here
+                    const trip = trips.find(t => t.countryCode === countryCode);
+                    if (trip) {
+                        layer.on({
+                            mouseover: (e) => {
+                                e.target.setStyle({ weight: 2, color: '#E65100', fillOpacity: 0.9 });
+                            },
+                            mouseout: (e) => {
+                                this.geoJsonLayer.resetStyle(e.target);
+                            },
+                            click: () => {
+                                this.navigationHelper.invokeMethodAsync('NavigateToTrip', trip.urlKey);
+                            }
+                        });
+                        layer.bindTooltip(feature.properties.name, { sticky: true });
+                    }
+                }
+            }).addTo(this.map);
+            console.log("World map drawn successfully.");
+        } catch (error) {
+            console.error("A critical error occurred during world map initialization:", error);
+        }
+    }
+};
 
 window.roamingRoutesMap = {
     maps: {}, // Object om kaart-instanties op te slaan
@@ -171,3 +265,4 @@ window.roamingRoutesGeneral = {
         updateState();
     }
 };
+

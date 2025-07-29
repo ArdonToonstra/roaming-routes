@@ -65,6 +65,10 @@ public static class DataSeeder
         [YamlMember(Alias = "country")]
         public string Country { get; set; } = "";
 
+        [YamlMember(Alias = "country_code")] 
+        public string CountryCode { get; set; } = ""; 
+
+
         [YamlMember(Alias = "budget")]
         public YamlTripBudget Budget { get; set; } = new();
 
@@ -250,6 +254,7 @@ public static class DataSeeder
                             StartDate = yamlTrip.StartDate,
                             EndDate = yamlTrip.EndDate,
                             Country = yamlTrip.Country,
+                            CountryCode = yamlTrip.CountryCode,
                             BudgetTotal = yamlTrip.Budget.Total,
                             BudgetCurrency = yamlTrip.Budget.Currency,
                             Locations = yamlTrip

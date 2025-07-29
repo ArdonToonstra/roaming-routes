@@ -51,6 +51,19 @@ public class TripsController : ControllerBase
         return trip;
     }
 
+    // GET: api/trips/countries
+    [HttpGet("countries")]
+    public async Task<ActionResult<IEnumerable<object>>> GetTripCountries()
+    {
+        var tripCountries = await _context.Trips
+            .Where(t => !string.IsNullOrEmpty(t.CountryCode))
+            .Select(t => new { t.CountryCode, t.UrlKey })
+            .Distinct()
+            .ToListAsync();
+
+        return Ok(tripCountries);
+    }
+
     // GET: api/trips/kyrgyzstan-adventure/geojson
     [HttpGet("{UrlKey}/geojson")]
     public async Task<IActionResult> GetTripGeoJson(string UrlKey)

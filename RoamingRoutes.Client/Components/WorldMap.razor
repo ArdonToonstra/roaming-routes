@@ -1,0 +1,29 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div id="world-map" style="height: 600px; width: 100%;" class="rounded-lg shadow-md bg-gray-200"></div>
+
+@code {
+    private DotNetObjectReference<WorldMap>? objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("roamingRoutesWorldMap.initialize", "world-map", objRef);
+        }
+    }
+
+    [JSInvokable]
+    public void NavigateToTrip(string urlKey)
+    {
+        NavigationManager.NavigateTo($"/trip/{urlKey}");
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}

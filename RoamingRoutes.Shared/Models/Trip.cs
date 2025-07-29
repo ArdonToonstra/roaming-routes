@@ -9,6 +9,7 @@ public class Trip
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Country { get; set; }
+    public string? CountryCode { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public decimal? BudgetTotal { get; set; }
