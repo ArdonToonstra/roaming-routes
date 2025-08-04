@@ -1,0 +1,310 @@
+@page "/game/lobby"
+@using RoamingRoutes.Shared.Models.Games
+@using RoamingRoutes.Client.Services
+@using Microsoft.AspNetCore.Components.Web
+@rendermode InteractiveWebAssembly
+@inject IGameClientService GameService
+@inject NavigationManager Navigation
+
+<PageTitle>Game Lobby - Roaming Routes</PageTitle>
+
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+    <div class="max-w-6xl mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Rounds Game Lobby</h1>
+            <p class="text-gray-600">Create a new game or join an existing one!</p>
+            
+            <!-- Game Mode Selection -->
+            <div class="flex justify-center gap-4 mt-6">
+                <a href="/game/local" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+                    📱 Local Game (Pass & Play)
+                </a>
+                <div class="bg-gray-100 text-gray-600 font-semibold py-2 px-6 rounded-lg">
+                    🌐 Online Multiplayer (Below)
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Create Game Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">🎮</span>
+                    Create New Game
+                </h2>
+                
+                @if (!string.IsNullOrEmpty(createErrorMessage))
+                {
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        @createErrorMessage
+                    </div>
+                }
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Your Nickname</label>
+                        <input @bind="hostNickname" @onkeypress="HandleCreateKeyPress" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                               placeholder="Enter your nickname" maxlength="20" />
+                    </div>
+                    
+                    <button @onclick="CreateGame" disabled="@isCreatingGame" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                        @if (isCreatingGame)
+                        {
+                            <span>Creating Game...</span>
+                        }
+                        else
+                        {
+                            <span>Create Game</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            <!-- Join Game Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">🚪</span>
+                    Join Existing Game
+                </h2>
+                
+                @if (!string.IsNullOrEmpty(joinErrorMessage))
+                {
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        @joinErrorMessage
+                    </div>
+                }
+
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Your Nickname</label>
+                        <input @bind="playerNickname" @onkeypress="HandleJoinKeyPress"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
+                               placeholder="Enter your nickname" maxlength="20" />
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Game ID</label>
+                        <input @bind="gameIdToJoin" @onkeypress="HandleJoinKeyPress"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
+                               placeholder="Enter game ID" />
+                    </div>
+                    
+                    <button @onclick="JoinGame" disabled="@isJoiningGame" 
+                            class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                        @if (isJoiningGame)
+                        {
+                            <span>Joining Game...</span>
+                        }
+                        else
+                        {
+                            <span>Join Game</span>
+                        }
+                    </button>
+                </div>
+
+                <!-- Available Games -->
+                <div class="border-t pt-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-3 flex items-center justify-between">
+                        <span>Available Games</span>
+                        <button @onclick="RefreshAvailableGames" disabled="@isLoadingGames"
+                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg transition-colors">
+                            @if (isLoadingGames)
+                            {
+                                <span>Loading...</span>
+                            }
+                            else
+                            {
+                                <span>🔄 Refresh</span>
+                            }
+                        </button>
+                    </h3>
+                    
+                    @if (availableGames?.Any() == true)
+                    {
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            @foreach (var game in availableGames)
+                            {
+                                <div class="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-800">Game @game.GameId</div>
+                                        <div class="text-sm text-gray-600">
+                                            Players: @game.Players.Count/@game.MaxPlayers | Host: @(game.Players.FirstOrDefault(p => p.IsHost)?.Nickname ?? "Unknown")
+                                        </div>
+                                        <div class="text-xs text-gray-500">ID: @game.GameId</div>
+                                    </div>
+                                    <button @onclick="() => QuickJoinGame(game.GameId)" 
+                                            disabled="@(isJoiningGame || string.IsNullOrWhiteSpace(playerNickname))"
+                                            class="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-3 py-1 rounded-lg text-sm transition-colors">
+                                        Join
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (isLoadingGames)
+                    {
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                            Loading available games...
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-8 text-gray-500">
+                            No games available. Create one to get started!
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Create game form
+    private string hostNickname = "";
+    private bool isCreatingGame = false;
+    private string createErrorMessage = "";
+
+    // Join game form
+    private string playerNickname = "";
+    private string gameIdToJoin = "";
+    private bool isJoiningGame = false;
+    private string joinErrorMessage = "";
+
+    // Available games
+    private List<GameStateDTO>? availableGames;
+    private bool isLoadingGames = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAvailableGames();
+    }
+
+    private async Task CreateGame()
+    {
+        createErrorMessage = "";
+        
+        if (string.IsNullOrWhiteSpace(hostNickname))
+        {
+            createErrorMessage = "Please enter your nickname.";
+            return;
+        }
+
+        isCreatingGame = true;
+        try
+        {
+            var request = new CreateGameRequestDTO
+            {
+                HostNickname = hostNickname.Trim(),
+                GameType = "Undercover"
+            };
+
+            var gameState = await GameService.CreateGameAsync(request);
+            
+            if (gameState != null)
+            {
+                // Navigate to the game page
+                Navigation.NavigateTo($"/game/{gameState.GameId}");
+            }
+            else
+            {
+                createErrorMessage = "Failed to create game.";
+            }
+        }
+        catch (Exception ex)
+        {
+            createErrorMessage = $"Error creating game: {ex.Message}";
+        }
+        finally
+        {
+            isCreatingGame = false;
+        }
+    }
+
+    private async Task JoinGame()
+    {
+        await JoinGameById(gameIdToJoin);
+    }
+
+    private async Task QuickJoinGame(string gameId)
+    {
+        await JoinGameById(gameId);
+    }
+
+    private async Task JoinGameById(string gameId)
+    {
+        joinErrorMessage = "";
+        
+        if (string.IsNullOrWhiteSpace(playerNickname) || string.IsNullOrWhiteSpace(gameId))
+        {
+            joinErrorMessage = "Please enter your nickname and game ID.";
+            return;
+        }
+
+        isJoiningGame = true;
+        try
+        {
+            var request = new JoinGameRequestDTO
+            {
+                Nickname = playerNickname.Trim()
+            };
+
+            var gameState = await GameService.JoinGameAsync(gameId.Trim(), request);
+            
+            if (gameState != null)
+            {
+                // Navigate to the game page
+                Navigation.NavigateTo($"/game/{gameState.GameId}");
+            }
+            else
+            {
+                joinErrorMessage = "Failed to join game.";
+            }
+        }
+        catch (Exception ex)
+        {
+            joinErrorMessage = $"Error joining game: {ex.Message}";
+        }
+        finally
+        {
+            isJoiningGame = false;
+        }
+    }
+
+    private async Task RefreshAvailableGames()
+    {
+        isLoadingGames = true;
+        try
+        {
+            availableGames = await GameService.GetAvailableGamesAsync();
+        }
+        catch (Exception)
+        {
+            availableGames = new List<GameStateDTO>();
+        }
+        finally
+        {
+            isLoadingGames = false;
+        }
+    }
+
+    private async Task HandleCreateKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isCreatingGame)
+        {
+            await CreateGame();
+        }
+    }
+
+    private async Task HandleJoinKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isJoiningGame)
+        {
+            await JoinGame();
+        }
+    }
+}

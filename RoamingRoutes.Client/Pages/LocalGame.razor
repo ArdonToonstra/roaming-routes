@@ -1,0 +1,497 @@
+@page "/game/local"
+@using RoamingRoutes.Shared.Models.Games
+@using Microsoft.AspNetCore.Components.Web
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Local Rounds Game - Roaming Routes</PageTitle>
+
+<div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
+    <div class="container mx-auto px-4 py-8">
+        
+        @if (gamePhase == GamePhase.Setup)
+        {
+            <!-- Game Setup -->
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">🎮 Local Rounds Game</h1>
+                    <p class="text-gray-600 text-center mb-8">Pass the device around to play with friends!</p>
+                    
+                    <!-- Players Setup -->
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Add Players</h2>
+                        
+                        <div class="flex gap-2 mb-4">
+                            <input @bind="newPlayerName" @onkeypress="HandleAddPlayerKeyPress"
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                                   placeholder="Enter player name" maxlength="20" />
+                            <button @onclick="AddPlayer" disabled="@string.IsNullOrWhiteSpace(newPlayerName)"
+                                    class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg">
+                                Add
+                            </button>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(setupErrorMessage))
+                        {
+                            <div class="text-red-600 text-sm mb-4">@setupErrorMessage</div>
+                        }
+                        
+                        <!-- Players List -->
+                        @if (players.Any())
+                        {
+                            <div class="space-y-2 mb-4">
+                                @for (int i = 0; i < players.Count; i++)
+                                {
+                                    var index = i; // Capture for lambda
+                                    <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                                        <span class="font-medium text-gray-800">@players[i].Name</span>
+                                        <button @onclick="() => RemovePlayer(index)"
+                                                class="text-red-500 hover:text-red-700 text-sm">
+                                            Remove
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    
+                    <button @onclick="StartGame" disabled="@(players.Count < 2)"
+                            class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg">
+                        @if (players.Count < 2)
+                        {
+                            <span>Need at least 2 players</span>
+                        }
+                        else
+                        {
+                            <span>Start Game (@players.Count players)</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
+        else if (gamePhase == GamePhase.Playing)
+        {
+            <!-- Game Playing -->
+            <div class="max-w-4xl mx-auto">
+                <!-- Game Header -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h1 class="text-2xl font-bold text-gray-800">Round @currentRound</h1>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-600">Players Alive: @players.Count(p => p.IsAlive)</div>
+                            <div class="text-sm text-gray-600">Total Rounds: @currentRound</div>
+                        </div>
+                    </div>
+
+                    <!-- Current Turn Indicator -->
+                    @if (currentPlayerIndex >= 0 && currentPlayerIndex < players.Count)
+                    {
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-blue-800">
+                                    🎯 @players[currentPlayerIndex].Name's Turn
+                                </div>
+                                <div class="text-sm text-blue-600">
+                                    Pass the device to @players[currentPlayerIndex].Name
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Players Status -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        @foreach (var player in players)
+                        {
+                            <div class="bg-gray-50 rounded-lg p-3 text-center @(player.IsAlive ? "" : "opacity-50")">
+                                <div class="font-medium @(player.IsAlive ? "text-gray-800" : "text-red-500 line-through")">
+                                    @player.Name
+                                </div>
+                                <div class="text-xs @(player.IsAlive ? "text-green-600" : "text-red-600")">
+                                    @(player.IsAlive ? "Alive" : "Eliminated")
+                                </div>
+                                @if (player.Score > 0)
+                                {
+                                    <div class="text-xs text-blue-600">Score: @player.Score</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @if (!votingPhase)
+                {
+                    <!-- Discussion Phase -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">💭 Discussion Phase</h2>
+                        <p class="text-gray-600 mb-6">Players discuss and try to find the undercover agent!</p>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <button @onclick="CallVote"
+                                    class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg">
+                                🗳️ Call for Vote
+                            </button>
+                            <button @onclick="NextPlayer"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg">
+                                ➡️ Next Player's Turn
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Voting Phase -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h2 class="text-xl font-semibold text-orange-600 mb-4">🗳️ Voting Phase</h2>
+                        <p class="text-gray-600 mb-6">Vote to eliminate a player. Each player votes in turn.</p>
+                        
+                        @if (currentVoterIndex >= 0 && currentVoterIndex < alivePlayers.Count)
+                        {
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                                <div class="text-center">
+                                    <div class="text-lg font-semibold text-orange-800">
+                                        @alivePlayers[currentVoterIndex].Name is voting
+                                    </div>
+                                    <div class="text-sm text-orange-600">
+                                        Pass the device to @alivePlayers[currentVoterIndex].Name to vote
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                            @foreach (var player in alivePlayers.Where(p => alivePlayers.IndexOf(p) != currentVoterIndex))
+                            {
+                                <button @onclick="() => VotePlayer(player)"
+                                        class="bg-red-100 hover:bg-red-200 border border-red-300 rounded-lg p-4 text-left transition-colors">
+                                    <div class="font-medium text-red-800">Vote to eliminate @player.Name</div>
+                                    @if (votes.ContainsKey(player.Name))
+                                    {
+                                        <div class="text-sm text-red-600">Votes: @votes[player.Name]</div>
+                                    }
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Game Log -->
+                @if (gameLog.Any())
+                {
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📜 Game Log</h3>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            @foreach (var logEntry in gameLog.TakeLast(10))
+                            {
+                                <div class="text-sm text-gray-600 bg-gray-50 rounded p-2">
+                                    <span class="text-xs text-gray-500">[@logEntry.Timestamp.ToString("HH:mm:ss")]</span>
+                                    @logEntry.Message
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (gamePhase == GamePhase.Finished)
+        {
+            <!-- Game Finished -->
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-4">🎉 Game Over!</h1>
+                    
+                    <div class="space-y-3 mb-8">
+                        @foreach (var player in players.OrderByDescending(p => p.Score))
+                        {
+                            <div class="@(player.IsAlive ? "text-green-600 font-semibold text-lg" : "text-gray-600")">
+                                @if (player.IsAlive && players.Count(p => p.IsAlive) == 1)
+                                {
+                                    <span>🏆 </span>
+                                }
+                                @player.Name - @(player.IsAlive ? "Winner!" : $"Eliminated (Round {player.EliminatedRound})")
+                                @if (player.Score > 0)
+                                {
+                                    <span class="text-sm"> - Score: @player.Score</span>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="space-y-4">
+                        <button @onclick="PlayAgain" 
+                                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg mr-4">
+                            🔄 Play Again
+                        </button>
+                        <button @onclick="BackToLobby" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg">
+                            🏠 Back to Main Lobby
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private enum GamePhase
+    {
+        Setup,
+        Playing,
+        Finished
+    }
+
+    private class LocalPlayer
+    {
+        public string Name { get; set; } = "";
+        public bool IsAlive { get; set; } = true;
+        public int Score { get; set; } = 0;
+        public int EliminatedRound { get; set; } = 0;
+    }
+
+    private class GameLogEntry
+    {
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public string Message { get; set; } = "";
+    }
+
+    // Game state
+    private GamePhase gamePhase = GamePhase.Setup;
+    private List<LocalPlayer> players = new();
+    private List<GameLogEntry> gameLog = new();
+    private int currentRound = 1;
+    private int currentPlayerIndex = 0;
+    private bool votingPhase = false;
+    private int currentVoterIndex = 0;
+    private Dictionary<string, int> votes = new();
+
+    // Setup phase
+    private string newPlayerName = "";
+    private string setupErrorMessage = "";
+
+    // Computed properties
+    private List<LocalPlayer> alivePlayers => players.Where(p => p.IsAlive).ToList();
+
+    protected override void OnInitialized()
+    {
+        LogMessage("Game started! Add players to begin.");
+    }
+
+    private void HandleAddPlayerKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddPlayer();
+        }
+    }
+
+    private void AddPlayer()
+    {
+        setupErrorMessage = "";
+        
+        if (string.IsNullOrWhiteSpace(newPlayerName))
+        {
+            setupErrorMessage = "Please enter a player name.";
+            return;
+        }
+
+        if (players.Any(p => p.Name.Equals(newPlayerName.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            setupErrorMessage = "A player with this name already exists.";
+            return;
+        }
+
+        if (players.Count >= 8)
+        {
+            setupErrorMessage = "Maximum 8 players allowed.";
+            return;
+        }
+
+        players.Add(new LocalPlayer { Name = newPlayerName.Trim() });
+        LogMessage($"{newPlayerName.Trim()} joined the game!");
+        newPlayerName = "";
+    }
+
+    private void RemovePlayer(int index)
+    {
+        if (index >= 0 && index < players.Count)
+        {
+            var playerName = players[index].Name;
+            players.RemoveAt(index);
+            LogMessage($"{playerName} left the game.");
+        }
+    }
+
+    private void StartGame()
+    {
+        if (players.Count < 2)
+        {
+            setupErrorMessage = "Need at least 2 players to start.";
+            return;
+        }
+
+        gamePhase = GamePhase.Playing;
+        currentPlayerIndex = 0;
+        LogMessage($"Game started with {players.Count} players!");
+        LogMessage($"Round {currentRound} begins. {players[currentPlayerIndex].Name} goes first.");
+    }
+
+    private void NextPlayer()
+    {
+        do
+        {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
+        } while (!players[currentPlayerIndex].IsAlive && alivePlayers.Count > 1);
+
+        if (alivePlayers.Count <= 1)
+        {
+            EndGame();
+            return;
+        }
+
+        LogMessage($"{players[currentPlayerIndex].Name}'s turn.");
+    }
+
+    private void CallVote()
+    {
+        if (alivePlayers.Count <= 2)
+        {
+            LogMessage("Cannot vote with only 2 players remaining.");
+            return;
+        }
+
+        votingPhase = true;
+        currentVoterIndex = 0;
+        votes.Clear();
+        
+        // Initialize vote counts
+        foreach (var player in alivePlayers)
+        {
+            votes[player.Name] = 0;
+        }
+
+        LogMessage("Voting phase started! Each player votes to eliminate someone.");
+    }
+
+    private void VotePlayer(LocalPlayer targetPlayer)
+    {
+        if (currentVoterIndex < 0 || currentVoterIndex >= alivePlayers.Count)
+            return;
+
+        var voter = alivePlayers[currentVoterIndex];
+        votes[targetPlayer.Name]++;
+        
+        LogMessage($"{voter.Name} voted to eliminate {targetPlayer.Name}.");
+
+        // Move to next voter
+        currentVoterIndex++;
+
+        // Check if all players have voted
+        if (currentVoterIndex >= alivePlayers.Count)
+        {
+            ProcessVoteResults();
+        }
+    }
+
+    private void ProcessVoteResults()
+    {
+        var maxVotes = votes.Values.Max();
+        var playersWithMaxVotes = votes.Where(v => v.Value == maxVotes).Select(v => v.Key).ToList();
+
+        if (playersWithMaxVotes.Count == 1)
+        {
+            // Clear elimination
+            var eliminatedPlayerName = playersWithMaxVotes.First();
+            var eliminatedPlayer = players.First(p => p.Name == eliminatedPlayerName);
+            eliminatedPlayer.IsAlive = false;
+            eliminatedPlayer.EliminatedRound = currentRound;
+            
+            LogMessage($"{eliminatedPlayerName} was eliminated with {maxVotes} votes!");
+        }
+        else
+        {
+            // Tie - no elimination
+            LogMessage($"Voting resulted in a tie. No one was eliminated.");
+        }
+
+        // End voting phase
+        votingPhase = false;
+        currentRound++;
+
+        // Check win condition
+        if (alivePlayers.Count <= 1)
+        {
+            EndGame();
+        }
+        else
+        {
+            // Continue to next round
+            currentPlayerIndex = 0;
+            while (!players[currentPlayerIndex].IsAlive)
+            {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
+            }
+            LogMessage($"Round {currentRound} begins!");
+        }
+    }
+
+    private void EndGame()
+    {
+        gamePhase = GamePhase.Finished;
+        
+        // Award points
+        var survivors = alivePlayers.ToList();
+        foreach (var survivor in survivors)
+        {
+            survivor.Score += 100; // Base survival points
+            survivor.Score += (currentRound - 1) * 10; // Round bonus
+        }
+
+        if (survivors.Count == 1)
+        {
+            LogMessage($"🎉 {survivors.First().Name} wins the game!");
+        }
+        else if (survivors.Count > 1)
+        {
+            LogMessage($"🎉 Game ended with {survivors.Count} survivors!");
+        }
+        else
+        {
+            LogMessage("🎉 Game ended - everyone was eliminated!");
+        }
+    }
+
+    private void PlayAgain()
+    {
+        // Reset game state but keep players
+        foreach (var player in players)
+        {
+            player.IsAlive = true;
+            player.Score = 0;
+            player.EliminatedRound = 0;
+        }
+
+        gamePhase = GamePhase.Playing;
+        currentRound = 1;
+        currentPlayerIndex = 0;
+        votingPhase = false;
+        currentVoterIndex = 0;
+        votes.Clear();
+        gameLog.Clear();
+
+        LogMessage("New game started!");
+        LogMessage($"Round {currentRound} begins. {players[currentPlayerIndex].Name} goes first.");
+    }
+
+    private void BackToLobby()
+    {
+        Navigation.NavigateTo("/game/lobby");
+    }
+
+    private void LogMessage(string message)
+    {
+        gameLog.Add(new GameLogEntry { Message = message, Timestamp = DateTime.Now });
+        StateHasChanged();
+    }
+
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+}

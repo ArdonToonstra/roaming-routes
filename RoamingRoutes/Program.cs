@@ -3,6 +3,8 @@ using RoamingRoutes.Client;
 using RoamingRoutes.Components;
 using RoamingRoutes.Data;
 using RoamingRoutes.Services;
+using RoamingRoutes.Client.Services;
+using RoamingRoutes.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString =
@@ -13,6 +15,40 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connect
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveWebAssemblyComponents();
 builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
+builder.Services.AddSingleton<IGameService, GameService>();
+
+// Add SignalR for real-time communication
+builder.Services.AddSignalR();
+
+// Register game client service for server-side rendering
+builder.Services.AddScoped<IGameClientService, ServerSideGameClientService>();
+
+// Register SignalR service for server-side rendering
+builder.Services.AddScoped<IGameSignalRService, ServerSideGameSignalRService>();
+
+// Add HttpClient for server-side components
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<HttpClient>(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient();
+    // For server-side rendering, use the local base address
+    var context = sp.GetService<IHttpContextAccessor>()?.HttpContext;
+    if (context != null)
+    {
+        var request = context.Request;
+        httpClient.BaseAddress = new Uri($"{request.Scheme}://{request.Host}");
+    }
+    else
+    {
+        // Fallback for when HttpContext is not available
+        httpClient.BaseAddress = new Uri("http://localhost:5216");
+    }
+    return httpClient;
+});
+
+// Add HttpContextAccessor to access the current request context
+builder.Services.AddHttpContextAccessor();
 
 builder
     .Services.AddControllers()
@@ -83,8 +119,11 @@ app.UseStaticFiles();
 app.MapControllers();
 app.UseAntiforgery();
 
+// Map SignalR hub
+app.MapHub<GameHub>("/gameHub");
+
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(RoamingRoutes.Client.Pages.Trips).Assembly);
+    .AddAdditionalAssemblies(typeof(RoamingRoutes.Client._Imports).Assembly);
 
 app.Run();
