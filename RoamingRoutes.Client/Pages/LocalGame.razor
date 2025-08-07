@@ -16,9 +16,83 @@
                     <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">🎮 Local Rounds Game</h1>
                     <p class="text-gray-600 text-center mb-8">Pass the device around to play with friends!</p>
                     
-                    <!-- Players Setup -->
+                    <!-- Player Count Setup -->
                     <div class="mb-6">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Add Players</h2>
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Game Setup</h2>
+                        
+                        <!-- Player Count Slider -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Number of Players: @playerCount
+                            </label>
+                            <input type="range" min="3" max="10" @bind="playerCount" @oninput="OnPlayerCountChanged"
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider" />
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>3</span>
+                                <span>4</span>
+                                <span>5</span>
+                                <span>6</span>
+                                <span>7</span>
+                                <span>8</span>
+                                <span>9</span>
+                                <span>10</span>
+                            </div>
+                        </div>
+
+                        <!-- Role Distribution -->
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">Role Distribution</h3>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <span class="text-white font-bold">@GetCivilianCount()</span>
+                                    </div>
+                                    <div class="text-sm font-medium text-gray-700">Civilians</div>
+                                    <div class="text-xs text-gray-500">Good guys</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <span class="text-white font-bold">@GetUndercoverCount()</span>
+                                    </div>
+                                    <div class="text-sm font-medium text-gray-700">Undercover</div>
+                                    <div class="text-xs text-gray-500">Secret agent</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="w-12 h-12 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <span class="text-white font-bold">@GetMisterWhiteCount()</span>
+                                    </div>
+                                    <div class="text-sm font-medium text-gray-700">Mr. White</div>
+                                    <div class="text-xs text-gray-500">Mystery role</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Suggested Players -->
+                        @if (suggestedNames.Any())
+                        {
+                            <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-3">Quick Start - Suggested Players</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    @foreach (var name in suggestedNames.Take(playerCount - players.Count))
+                                    {
+                                        <button @onclick="() => AddSuggestedPlayer(name)"
+                                                class="bg-white hover:bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors">
+                                            + @name
+                                        </button>
+                                    }
+                                </div>
+                                @if (suggestedNames.Count > playerCount - players.Count)
+                                {
+                                    <button @onclick="GenerateSuggestedNames" 
+                                            class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline">
+                                        🎲 Generate different names
+                                    </button>
+                                }
+                            </div>
+                        }
+                        
+                        <!-- Players Setup -->
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Add Players</h3>
                         
                         <div class="flex gap-2 mb-4">
                             <input @bind="newPlayerName" @onkeypress="HandleAddPlayerKeyPress"
@@ -54,15 +128,19 @@
                         }
                     </div>
                     
-                    <button @onclick="StartGame" disabled="@(players.Count < 2)"
+                    <button @onclick="StartGame" disabled="@(players.Count < playerCount || players.Count != playerCount)"
                             class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg">
-                        @if (players.Count < 2)
+                        @if (players.Count < playerCount)
                         {
-                            <span>Need at least 2 players</span>
+                            <span>Need @playerCount players (@players.Count/@playerCount added)</span>
+                        }
+                        else if (players.Count > playerCount)
+                        {
+                            <span>Too many players! Remove @(players.Count - playerCount) player(s)</span>
                         }
                         else
                         {
-                            <span>Start Game (@players.Count players)</span>
+                            <span>Start Undercover Game (@players.Count players)</span>
                         }
                     </button>
                 </div>
@@ -267,6 +345,21 @@
     // Setup phase
     private string newPlayerName = "";
     private string setupErrorMessage = "";
+    private int playerCount = 4; // Default to 4 players
+    private List<string> suggestedNames = new();
+    private int editingPlayerIndex = -1;
+    private string editingPlayerName = "";
+
+    // Funny player names for quick setup
+    private readonly List<string> funnyNames = new()
+    {
+        "Captain Obvious", "Sneaky Pete", "Detective Dan", "Mystery Mike", "Sherlock Bones",
+        "Agent Smith", "Spy Guy", "Secret Sam", "Curious Cat", "Nosy Nancy",
+        "Undercover Bob", "Hidden Henry", "Covert Carl", "Stealth Steve", "Shadow Sally",
+        "Clue Hunter", "Truth Seeker", "Riddle Master", "Puzzle Pro", "Mystery Maven",
+        "Silent Sarah", "Whisper Will", "Quiet Quinn", "Hushed Hannah", "Mute Max",
+        "Deduction Dave", "Logic Lisa", "Reason Ray", "Smart Sara", "Wise Will"
+    };
 
     // Computed properties
     private List<LocalPlayer> alivePlayers => players.Where(p => p.IsAlive).ToList();
@@ -274,6 +367,7 @@
     protected override void OnInitialized()
     {
         LogMessage("Game started! Add players to begin.");
+        GenerateSuggestedNames();
     }
 
     private void HandleAddPlayerKeyPress(KeyboardEventArgs e)
@@ -300,9 +394,9 @@
             return;
         }
 
-        if (players.Count >= 8)
+        if (players.Count >= playerCount)
         {
-            setupErrorMessage = "Maximum 8 players allowed.";
+            setupErrorMessage = $"Maximum {playerCount} players allowed for this game.";
             return;
         }
 
@@ -318,21 +412,129 @@
             var playerName = players[index].Name;
             players.RemoveAt(index);
             LogMessage($"{playerName} left the game.");
+            
+            // Regenerate suggested names if we have fewer players than needed
+            if (players.Count < playerCount)
+            {
+                GenerateSuggestedNames();
+            }
         }
     }
 
     private void StartGame()
     {
-        if (players.Count < 2)
+        if (players.Count != playerCount)
         {
-            setupErrorMessage = "Need at least 2 players to start.";
+            setupErrorMessage = $"Need exactly {playerCount} players to start.";
             return;
         }
 
         gamePhase = GamePhase.Playing;
         currentPlayerIndex = 0;
-        LogMessage($"Game started with {players.Count} players!");
+        LogMessage($"Undercover game started with {players.Count} players!");
+        LogMessage($"Roles: {GetCivilianCount()} Civilians, {GetUndercoverCount()} Undercover, {GetMisterWhiteCount()} Mr. White");
         LogMessage($"Round {currentRound} begins. {players[currentPlayerIndex].Name} goes first.");
+    }
+
+    // Player count slider handler
+    private void OnPlayerCountChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newCount))
+        {
+            playerCount = newCount;
+            GenerateSuggestedNames();
+            StateHasChanged();
+        }
+    }
+
+    // Generate suggested player names based on player count
+    private void GenerateSuggestedNames()
+    {
+        suggestedNames.Clear();
+        var random = new Random();
+        var availableNames = funnyNames.Where(name => !players.Any(p => p.Name == name)).ToList();
+        
+        for (int i = 0; i < playerCount && i < availableNames.Count; i++)
+        {
+            var randomIndex = random.Next(availableNames.Count);
+            suggestedNames.Add(availableNames[randomIndex]);
+            availableNames.RemoveAt(randomIndex);
+        }
+    }
+
+    // Add a suggested player
+    private void AddSuggestedPlayer(string name)
+    {
+        if (players.Count >= playerCount)
+        {
+            setupErrorMessage = $"Maximum {playerCount} players allowed for this game.";
+            return;
+        }
+
+        if (players.Any(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            setupErrorMessage = "A player with this name already exists.";
+            return;
+        }
+
+        players.Add(new LocalPlayer { Name = name });
+        LogMessage($"{name} joined the game!");
+        
+        // Remove from suggested names and regenerate if needed
+        suggestedNames.Remove(name);
+        if (suggestedNames.Count < playerCount - players.Count)
+        {
+            GenerateSuggestedNames();
+        }
+    }
+
+    // Role calculation methods
+    private int GetCivilianCount()
+    {
+        return playerCount switch
+        {
+            3 => 2,  // 2 civilians, 1 undercover, 0 white
+            4 => 2,  // 2 civilians, 1 undercover, 1 white
+            5 => 3,  // 3 civilians, 1 undercover, 1 white
+            6 => 3,  // 3 civilians, 2 undercover, 1 white
+            7 => 4,  // 4 civilians, 2 undercover, 1 white
+            8 => 4,  // 4 civilians, 2 undercover, 2 white
+            9 => 5,  // 5 civilians, 2 undercover, 2 white
+            10 => 5, // 5 civilians, 3 undercover, 2 white
+            _ => Math.Max(1, playerCount - GetUndercoverCount() - GetMisterWhiteCount())
+        };
+    }
+
+    private int GetUndercoverCount()
+    {
+        return playerCount switch
+        {
+            3 => 1,
+            4 => 1,
+            5 => 1,
+            6 => 2,
+            7 => 2,
+            8 => 2,
+            9 => 2,
+            10 => 3,
+            _ => 1
+        };
+    }
+
+    private int GetMisterWhiteCount()
+    {
+        return playerCount switch
+        {
+            3 => 0,
+            4 => 1,
+            5 => 1,
+            6 => 1,
+            7 => 1,
+            8 => 2,
+            9 => 2,
+            10 => 2,
+            _ => playerCount >= 4 ? 1 : 0
+        };
     }
 
     private void NextPlayer()
@@ -495,3 +697,36 @@
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 }
+
+<style>
+    .slider {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        background: linear-gradient(to right, #e5e7eb 0%, #9333ea 50%, #db2777 100%);
+        outline: none;
+        border-radius: 8px;
+    }
+
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #8b5cf6;
+        cursor: pointer;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #8b5cf6;
+        cursor: pointer;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+</style>
