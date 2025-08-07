@@ -16,6 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connect
 builder.Services.AddRazorComponents().AddInteractiveWebAssemblyComponents();
 builder.Services.AddSingleton<IGoogleDriveService, GoogleDriveService>();
 builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<IWordPairService, WordPairService>();
 
 // Add SignalR for real-time communication
 builder.Services.AddSignalR();
@@ -25,6 +26,9 @@ builder.Services.AddScoped<IGameClientService, ServerSideGameClientService>();
 
 // Register SignalR service for server-side rendering
 builder.Services.AddScoped<IGameSignalRService, ServerSideGameSignalRService>();
+
+// Register word pair client service for server-side rendering
+builder.Services.AddScoped<IWordPairClientService, ServerSideWordPairClientService>();
 
 // Add HttpClient for server-side components
 builder.Services.AddHttpClient();

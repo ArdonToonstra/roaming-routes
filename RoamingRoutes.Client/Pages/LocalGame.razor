@@ -1,5 +1,6 @@
 @page "/game/local"
 @using RoamingRoutes.Shared.Models.Games
+@using RoamingRoutes.Client.Services
 @using Microsoft.AspNetCore.Components.Web
 @rendermode InteractiveWebAssembly
 
@@ -19,6 +20,35 @@
                     <!-- Player Count Setup -->
                     <div class="mb-6">
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Game Setup</h2>
+                        
+                        <!-- Word Category Selection -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Word Category
+                            </label>
+                            @if (wordCategories.Any())
+                            {
+                                <select @bind="selectedCategoryName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    @foreach (var category in wordCategories)
+                                    {
+                                        <option value="@category.Name">@category.Name</option>
+                                    }
+                                </select>
+                                @if (!string.IsNullOrEmpty(selectedCategoryName))
+                                {
+                                    var selectedCategory = wordCategories.FirstOrDefault(c => c.Name == selectedCategoryName);
+                                    @if (selectedCategory != null)
+                                    {
+                                        <p class="text-sm text-gray-600 mt-1">@selectedCategory.Description</p>
+                                        <p class="text-xs text-gray-500 mt-1">@selectedCategory.Pairs.Count word pairs available</p>
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-gray-500 text-sm">Loading word categories...</div>
+                            }
+                        </div>
                         
                         <!-- Player Count Slider -->
                         <div class="mb-6">
@@ -128,7 +158,7 @@
                         }
                     </div>
                     
-                    <button @onclick="StartGame" disabled="@(players.Count < playerCount || players.Count != playerCount)"
+                    <button @onclick="StartGameAsync" disabled="@(players.Count < playerCount || players.Count != playerCount)"
                             class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg">
                         @if (players.Count < playerCount)
                         {
@@ -146,6 +176,96 @@
                 </div>
             </div>
         }
+        else if (gamePhase == GamePhase.RoleAssignment)
+        {
+            <!-- Role Assignment Phase -->
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8 text-center">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">🃏 Role Assignment</h1>
+                    <p class="text-gray-600 mb-8">Each player picks a card to discover their role!</p>
+                    
+                    <!-- Current Player Indicator -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                        <h2 class="text-2xl font-bold text-blue-800 mb-2">
+                            @players[currentCardIndex].Name's Turn
+                        </h2>
+                        <p class="text-blue-600">
+                            Pass the device to @players[currentCardIndex].Name to pick their card
+                        </p>
+                    </div>
+
+                    <!-- Available Cards Display -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            Cards Remaining: @availableCards.Count
+                        </h3>
+                        <div class="grid grid-cols-5 gap-3 max-w-md mx-auto">
+                            @for (int i = 0; i < availableCards.Count; i++)
+                            {
+                                var cardIndex = i;
+                                <div class="aspect-square bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center cursor-pointer hover:from-purple-600 hover:to-pink-600 transition-colors"
+                                     @onclick="() => PickCard(cardIndex)">
+                                    <span class="text-white text-2xl">🃏</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (cardRevealed)
+                    {
+                        <!-- Card Revealed -->
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6 mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">Your Role:</h3>
+                            
+                            @if (currentPlayerRole == "Civilian")
+                            {
+                                <div class="text-center">
+                                    <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span class="text-white text-2xl">👤</span>
+                                    </div>
+                                    <h4 class="text-lg font-bold text-blue-600 mb-2">CIVILIAN</h4>
+                                    <p class="text-gray-600 mb-4">You are on the good side! Your word is:</p>
+                                    <div class="bg-blue-100 rounded-lg p-4">
+                                        <span class="text-2xl font-bold text-blue-800">@currentPlayerWord</span>
+                                    </div>
+                                </div>
+                            }
+                            else if (currentPlayerRole == "Undercover")
+                            {
+                                <div class="text-center">
+                                    <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span class="text-white text-2xl">🕵️</span>
+                                    </div>
+                                    <h4 class="text-lg font-bold text-red-600 mb-2">UNDERCOVER</h4>
+                                    <p class="text-gray-600 mb-4">You are the undercover agent! Your word is:</p>
+                                    <div class="bg-red-100 rounded-lg p-4">
+                                        <span class="text-2xl font-bold text-red-800">@currentPlayerWord</span>
+                                    </div>
+                                </div>
+                            }
+                            else if (currentPlayerRole == "Mr. White")
+                            {
+                                <div class="text-center">
+                                    <div class="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span class="text-white text-2xl">❓</span>
+                                    </div>
+                                    <h4 class="text-lg font-bold text-gray-600 mb-2">MR. WHITE</h4>
+                                    <p class="text-gray-600 mb-4">You don't know the word! Try to blend in and figure out what everyone is talking about.</p>
+                                    <div class="bg-gray-100 rounded-lg p-4">
+                                        <span class="text-lg font-bold text-gray-600">No word for you!</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <button @onclick="ConfirmRole" 
+                                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg">
+                            ✓ Got it! Pass to next player
+                        </button>
+                    }
+                </div>
+            </div>
+        }
         else if (gamePhase == GamePhase.Playing)
         {
             <!-- Game Playing -->
@@ -157,6 +277,34 @@
                         <div class="text-right">
                             <div class="text-sm text-gray-600">Players Alive: @players.Count(p => p.IsAlive)</div>
                             <div class="text-sm text-gray-600">Total Rounds: @currentRound</div>
+                        </div>
+                    </div>
+
+                    <!-- Turn Order Display -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2">Turn Order:</h3>
+                        <div class="flex flex-wrap gap-2">
+                            @for (int i = 0; i < players.Count; i++)
+                            {
+                                var displayIndex = (currentPlayerIndex + i) % players.Count;
+                                var player = players[displayIndex];
+                                var isCurrentPlayer = displayIndex == currentPlayerIndex;
+                                var isAlive = player.IsAlive;
+                                
+                                <div class="@(isCurrentPlayer ? "bg-blue-500 text-white" : isAlive ? "bg-white text-gray-800" : "bg-gray-300 text-gray-500") 
+                                           border @(isCurrentPlayer ? "border-blue-600" : "border-gray-200") 
+                                           rounded-lg px-3 py-1 text-sm font-medium @(!isAlive ? "opacity-50 line-through" : "")">
+                                    @if (isCurrentPlayer && isAlive)
+                                    {
+                                        <span class="mr-1">👑</span>
+                                    }
+                                    @player.Name
+                                    @if (i < players.Count - 1)
+                                    {
+                                        <span class="ml-2 text-gray-400">→</span>
+                                    }
+                                </div>
+                            }
                         </div>
                     </div>
 
@@ -251,23 +399,6 @@
                         </div>
                     </div>
                 }
-
-                <!-- Game Log -->
-                @if (gameLog.Any())
-                {
-                    <div class="bg-white rounded-xl shadow-lg p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📜 Game Log</h3>
-                        <div class="space-y-2 max-h-64 overflow-y-auto">
-                            @foreach (var logEntry in gameLog.TakeLast(10))
-                            {
-                                <div class="text-sm text-gray-600 bg-gray-50 rounded p-2">
-                                    <span class="text-xs text-gray-500">[@logEntry.Timestamp.ToString("HH:mm:ss")]</span>
-                                    @logEntry.Message
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
             </div>
         }
         else if (gamePhase == GamePhase.Finished)
@@ -295,13 +426,13 @@
                     </div>
 
                     <div class="space-y-4">
-                        <button @onclick="PlayAgain" 
+                        <button @onclick="PlayAgainAsync" 
                                 class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg mr-4">
                             🔄 Play Again
                         </button>
                         <button @onclick="BackToLobby" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg">
-                            🏠 Back to Main Lobby
+                            🏠 Back to Rounds
                         </button>
                     </div>
                 </div>
@@ -314,6 +445,7 @@
     private enum GamePhase
     {
         Setup,
+        RoleAssignment,
         Playing,
         Finished
     }
@@ -342,6 +474,16 @@
     private int currentVoterIndex = 0;
     private Dictionary<string, int> votes = new();
 
+    // Role assignment phase
+    private int currentCardIndex = 0;
+    private List<string> availableCards = new();
+    private string civilianWord = "";
+    private string undercoverWord = "";
+    private List<string> assignedRoles = new(); // Track what role each player got
+    private bool cardRevealed = false;
+    private string currentPlayerRole = "";
+    private string currentPlayerWord = "";
+
     // Setup phase
     private string newPlayerName = "";
     private string setupErrorMessage = "";
@@ -349,6 +491,10 @@
     private List<string> suggestedNames = new();
     private int editingPlayerIndex = -1;
     private string editingPlayerName = "";
+
+    // Word category selection
+    private List<WordPairCategory> wordCategories = new();
+    private string selectedCategoryName = "Travel Words"; // Default to travel words
 
     // Funny player names for quick setup
     private readonly List<string> funnyNames = new()
@@ -364,10 +510,47 @@
     // Computed properties
     private List<LocalPlayer> alivePlayers => players.Where(p => p.IsAlive).ToList();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         LogMessage("Game started! Add players to begin.");
         GenerateSuggestedNames();
+        await LoadWordCategories();
+    }
+
+    private async Task LoadWordCategories()
+    {
+        try
+        {
+            wordCategories = await WordPairService.GetCategoriesAsync();
+            
+            // Set default category if not already set or if current selection doesn't exist
+            if (string.IsNullOrEmpty(selectedCategoryName) || 
+                !wordCategories.Any(c => c.Name == selectedCategoryName))
+            {
+                selectedCategoryName = wordCategories.FirstOrDefault()?.Name ?? "";
+            }
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"Warning: Could not load word categories. Using default words. Error: {ex.Message}");
+            // Fallback to a basic category
+            wordCategories = new List<WordPairCategory>
+            {
+                new WordPairCategory
+                {
+                    Name = "Basic Words",
+                    Description = "Simple everyday words",
+                    Pairs = new List<WordPair>
+                    {
+                        new WordPair { Civilian = "Coffee", Undercover = "Tea" },
+                        new WordPair { Civilian = "Dog", Undercover = "Cat" },
+                        new WordPair { Civilian = "Car", Undercover = "Bus" }
+                    }
+                }
+            };
+            selectedCategoryName = "Basic Words";
+        }
+        StateHasChanged();
     }
 
     private void HandleAddPlayerKeyPress(KeyboardEventArgs e)
@@ -421,7 +604,7 @@
         }
     }
 
-    private void StartGame()
+    private async Task StartGame()
     {
         if (players.Count != playerCount)
         {
@@ -429,11 +612,168 @@
             return;
         }
 
-        gamePhase = GamePhase.Playing;
-        currentPlayerIndex = 0;
-        LogMessage($"Undercover game started with {players.Count} players!");
-        LogMessage($"Roles: {GetCivilianCount()} Civilians, {GetUndercoverCount()} Undercover, {GetMisterWhiteCount()} Mr. White");
-        LogMessage($"Round {currentRound} begins. {players[currentPlayerIndex].Name} goes first.");
+        try
+        {
+            // Get random word pair from selected category
+            var selectedPair = await WordPairService.GetRandomPairFromCategoryAsync(selectedCategoryName);
+            civilianWord = selectedPair.Civilian;
+            undercoverWord = selectedPair.Undercover;
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"Warning: Could not load words from category '{selectedCategoryName}'. Using fallback words. Error: {ex.Message}");
+            // Fallback to default words
+            civilianWord = "Coffee";
+            undercoverWord = "Tea";
+        }
+
+        // Initialize role assignment phase
+        gamePhase = GamePhase.RoleAssignment;
+        currentCardIndex = 0;
+        cardRevealed = false;
+        
+        // Create available cards based on role distribution
+        availableCards.Clear();
+        assignedRoles.Clear();
+        
+        // Add civilian cards
+        for (int i = 0; i < GetCivilianCount(); i++)
+        {
+            availableCards.Add("Civilian");
+        }
+        
+        // Add undercover cards
+        for (int i = 0; i < GetUndercoverCount(); i++)
+        {
+            availableCards.Add("Undercover");
+        }
+        
+        // Add Mr. White cards
+        for (int i = 0; i < GetMisterWhiteCount(); i++)
+        {
+            availableCards.Add("Mr. White");
+        }
+        
+        // Shuffle the cards
+        var random = new Random();
+        for (int i = availableCards.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (availableCards[i], availableCards[j]) = (availableCards[j], availableCards[i]);
+        }
+        
+        LogMessage($"Role assignment started! {players[currentCardIndex].Name}, pick your card.");
+    }
+
+    private async Task StartGameAsync()
+    {
+        await StartGame();
+    }
+
+    // Role assignment methods
+    private void PickCard(int cardIndex)
+    {
+        if (cardRevealed) return;
+
+        // Get the role from the selected card
+        currentPlayerRole = availableCards[cardIndex];
+        
+        // Set the word based on role
+        if (currentPlayerRole == "Civilian")
+        {
+            currentPlayerWord = civilianWord;
+        }
+        else if (currentPlayerRole == "Undercover")
+        {
+            currentPlayerWord = undercoverWord;
+        }
+        else // Mr. White
+        {
+            currentPlayerWord = "";
+        }
+        
+        // Remove the card from available cards
+        availableCards.RemoveAt(cardIndex);
+        
+        // Record the role assignment
+        assignedRoles.Add(currentPlayerRole);
+        
+        cardRevealed = true;
+    }
+
+    private void ConfirmRole()
+    {
+        cardRevealed = false;
+        currentCardIndex++;
+        
+        // Check if all players have their roles
+        if (currentCardIndex >= players.Count)
+        {
+            // Determine turn order - Mr. White cannot start
+            DetermineTurnOrder();
+            
+            // Start the actual game
+            gamePhase = GamePhase.Playing;
+            LogMessage($"All roles assigned! Game begins!");
+            LogMessage($"Words in play: Civilians have '{civilianWord}', Undercover has '{undercoverWord}'");
+            LogMessage($"Turn order: {string.Join(" → ", GetTurnOrderDisplay())}");
+            LogMessage($"Round {currentRound} begins. {players[currentPlayerIndex].Name} goes first.");
+        }
+        else
+        {
+            LogMessage($"{players[currentCardIndex].Name}, pick your card.");
+        }
+    }
+
+    private void DetermineTurnOrder()
+    {
+        // Find players who are not Mr. White
+        var nonMrWhitePlayers = new List<int>();
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (assignedRoles[i] != "Mr. White")
+            {
+                nonMrWhitePlayers.Add(i);
+            }
+        }
+        
+        // If we have non-Mr. White players, pick one randomly to start
+        if (nonMrWhitePlayers.Any())
+        {
+            var random = new Random();
+            currentPlayerIndex = nonMrWhitePlayers[random.Next(nonMrWhitePlayers.Count)];
+        }
+        else
+        {
+            // Edge case: all players are Mr. White (shouldn't happen in normal game)
+            currentPlayerIndex = 0;
+        }
+    }
+
+    private List<string> GetTurnOrderDisplay()
+    {
+        var turnOrder = new List<string>();
+        int playerIndex = currentPlayerIndex;
+        
+        for (int i = 0; i < players.Count; i++)
+        {
+            var player = players[playerIndex];
+            var role = assignedRoles[playerIndex];
+            
+            // Add role indicator
+            string roleIcon = role switch
+            {
+                "Civilian" => "👤",
+                "Undercover" => "🕵️",
+                "Mr. White" => "❓",
+                _ => "?"
+            };
+            
+            turnOrder.Add($"{player.Name} {roleIcon}");
+            playerIndex = (playerIndex + 1) % players.Count;
+        }
+        
+        return turnOrder;
     }
 
     // Player count slider handler
@@ -662,7 +1002,7 @@
         }
     }
 
-    private void PlayAgain()
+    private async Task PlayAgain()
     {
         // Reset game state but keep players
         foreach (var player in players)
@@ -672,21 +1012,68 @@
             player.EliminatedRound = 0;
         }
 
-        gamePhase = GamePhase.Playing;
+        // Reset to role assignment phase
+        gamePhase = GamePhase.RoleAssignment;
         currentRound = 1;
         currentPlayerIndex = 0;
+        currentCardIndex = 0;
         votingPhase = false;
         currentVoterIndex = 0;
         votes.Clear();
         gameLog.Clear();
+        cardRevealed = false;
+        assignedRoles.Clear();
+        availableCards.Clear();
+        
+        try
+        {
+            // Select new random word pair from current category
+            var selectedPair = await WordPairService.GetRandomPairFromCategoryAsync(selectedCategoryName);
+            civilianWord = selectedPair.Civilian;
+            undercoverWord = selectedPair.Undercover;
+        }
+        catch (Exception ex)
+        {
+            LogMessage($"Warning: Could not load words from category '{selectedCategoryName}'. Using fallback words. Error: {ex.Message}");
+            // Fallback to default words
+            civilianWord = "Coffee";
+            undercoverWord = "Tea";
+        }
+        
+        // Recreate available cards
+        for (int i = 0; i < GetCivilianCount(); i++)
+        {
+            availableCards.Add("Civilian");
+        }
+        for (int i = 0; i < GetUndercoverCount(); i++)
+        {
+            availableCards.Add("Undercover");
+        }
+        for (int i = 0; i < GetMisterWhiteCount(); i++)
+        {
+            availableCards.Add("Mr. White");
+        }
+        
+        // Shuffle the cards
+        var random = new Random();
+        for (int i = availableCards.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (availableCards[i], availableCards[j]) = (availableCards[j], availableCards[i]);
+        }
 
-        LogMessage("New game started!");
-        LogMessage($"Round {currentRound} begins. {players[currentPlayerIndex].Name} goes first.");
+        LogMessage("New game started! Role assignment begins.");
+        LogMessage($"{players[currentCardIndex].Name}, pick your card.");
+    }
+
+    private async Task PlayAgainAsync()
+    {
+        await PlayAgain();
     }
 
     private void BackToLobby()
     {
-        Navigation.NavigateTo("/game/lobby");
+        Navigation.NavigateTo("/rounds");
     }
 
     private void LogMessage(string message)
@@ -696,6 +1083,7 @@
     }
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private IWordPairClientService WordPairService { get; set; } = default!;
 }
 
 <style>

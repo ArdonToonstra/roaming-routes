@@ -13,4 +13,7 @@ builder.Services.AddScoped<IGameClientService, GameClientService>();
 // Register the SignalR service
 builder.Services.AddScoped<IGameSignalRService, GameSignalRService>();
 
+// Register the word pair client service
+builder.Services.AddScoped<IWordPairClientService, WordPairClientService>();
+
 await builder.Build().RunAsync();
